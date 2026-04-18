@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background-color: #f4f4f4; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; min-height: 100vh; background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header-left { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #008f68; font-size: 1.1rem; font-weight: 700; }
+        
+        .illustration { width: 180px; height: 180px; background-color: #eff6f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 20px 0; font-size: 4rem; color: #008f68; }
+        
+        .events-list { width: 100%; display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .event-card { background-color: #eff6f3; padding: 15px; border-radius: 12px; display: flex; gap: 15px; align-items: center; }
+        .event-card i { color: #008f68; font-size: 1.2rem; }
+        .event-info h3 { font-size: 0.95rem; color: #333; margin-bottom: 3px; }
+        .event-info p { font-size: 0.8rem; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <a href="{{ url_for('configuracoes') }}" class="header-left"><i class="fa-solid fa-arrow-left"></i> Calendário do DI</a>
+            <i class="fa-regular fa-bell" style="color: #008f68; font-size: 1.2rem;"></i>
+        </header>
+
+        <div class="illustration">
+            <i class="fa-regular fa-calendar-check"></i>
+        </div>
+
+        <div class="events-list">
+            <div class="event-card">
+                <i class="fa-regular fa-calendar"></i>
+                <div class="event-info">
+                    <h3>EBF - Escola Bíblica de Férias</h3>
+                    <p>15/07 a 17/07/2026</p>
+                </div>
+            </div>
+
+            <div class="event-card">
+                <i class="fa-regular fa-calendar"></i>
+                <div class="event-info">
+                    <h3>Capacitação de professores</h3>
+                    <p>10/07/2026</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

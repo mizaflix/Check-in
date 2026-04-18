@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escanear QR Code - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background-color: #f4f4f4; display: flex; justify-content: center; }
+        .app-container {
+            width: 100%; max-width: 414px; min-height: 100vh;
+            background-color: #1a1a1a; /* Fundo escuro para a câmera */
+            padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            position: relative; display: flex; flex-direction: column;
+        }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .back-link { text-decoration: none; color: #ffffff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        
+        .camera-view {
+            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            position: relative;
+        }
+
+        /* O "quadrado" do foco do QR Code */
+        .qr-frame {
+            width: 250px; height: 250px;
+            border: 4px solid #008f68; border-radius: 20px;
+            position: relative; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Escurece em volta do foco */
+        }
+
+        .qr-frame::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background-color: #ff7b5a; box-shadow: 0 0 10px #ff7b5a;
+            animation: scan 2s infinite linear; /* Linha animada subindo e descendo */
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+
+        .instructions { color: white; text-align: center; margin-top: 30px; font-size: 1rem; z-index: 10; padding: 0 20px; }
+        
+        .btn-simulate {
+            background-color: #008f68; color: white; border: none; padding: 15px; border-radius: 25px;
+            font-size: 1rem; font-weight: 700; width: 100%; cursor: pointer; margin-top: auto; margin-bottom: 20px; z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <a href="javascript:history.back()" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> Cancelar
+            </a>
+        </header>
+
+        <div class="camera-view">
+            <div class="qr-frame">
+                <i class="fa-solid fa-qrcode" style="font-size: 4rem; color: rgba(255,255,255,0.2);"></i>
+            </div>
+            
+            <p class="instructions">
+                Aponte a câmera para o QR Code para confirmar o 
+                {% if crianca.esta_presente %} <b>Check-out</b> {% else %} <b>Check-in</b> {% endif %} 
+                de <b>{{ crianca.nome }}</b>.
+            </p>
+        </div>
+
+        <form action="{{ url_for('toggle_checkin', crianca_id=crianca.id) }}" method="POST" style="margin-top: auto;">
+            <button type="submit" class="btn-simulate">
+                <i class="fa-solid fa-camera"></i> Simular Leitura com Sucesso
+            </button>
+        </form>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realizar Check-in - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ==========================================
+           ESTILOS GERAIS (BASE)
+        ========================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        body {
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 414px;
+            min-height: 100vh;
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .text-green { color: #008f68; }
+        .bg-green { background-color: #008f68; color: white; }
+        .bg-orange { background-color: #ff7b5a; color: white; }
+
+        /* ==========================================
+           CABEÇALHO
+        ========================================== */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: #008f68;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bell-icon {
+            font-size: 1.2rem;
+            color: #008f68;
+        }
+
+        /* ==========================================
+           BARRA DE PESQUISA
+        ========================================== */
+        .search-container {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 12px 15px 12px 40px; /* Espaço para o ícone na esquerda */
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            color: #333;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .search-container input:focus {
+            border-color: #008f68;
+        }
+
+        .search-container i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+
+        /* ==========================================
+           LISTA DE CRIANÇAS (Cards)
+        ========================================== */
+        .user-card {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #f0f0f0;
+            border-radius: 25px;
+            margin-bottom: 15px;
+            background-color: #fafafa;
+        }
+
+        .avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .user-sub {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .status-form {
+            margin: 0;
+        }
+
+        .btn-status {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <a href="{{ url_for('dashboard') }}" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> Realizar Check-in
+            </a>
+            <i class="fa-regular fa-bell bell-icon"></i>
+        </header>
+
+        <div class="search-container">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Busque por uma criança...">
+        </div>
+
+        {% if criancas %}
+            {% for crianca in criancas %}
+            <div class="user-card">
+                <div class="avatar">
+                    {% if crianca.foto_url != 'default.png' %}
+                        <img src="{{ url_for('static', filename='uploads/' + crianca.foto_url) }}" alt="Foto">
+                    {% else %}
+                        <i class="fa-solid fa-child text-green"></i>
+                    {% endif %}
+                </div>
+                
+                <div class="user-info">
+                    <p class="user-name">{{ crianca.nome }}</p>
+                    <p class="user-sub">Cadastrado(a)</p>
+                </div>
+                
+                <div class="status-form">
+                    {% if crianca.esta_presente %}
+                        <a href="{{ url_for('escanear_qr', crianca_id=crianca.id) }}" class="btn-status bg-orange" style="text-decoration: none; display: inline-block; text-align: center;">Fazer check-out</a>
+                    {% else %}
+                        <a href="{{ url_for('escanear_qr', crianca_id=crianca.id) }}" class="btn-status bg-green" style="text-decoration: none; display: inline-block; text-align: center;">Fazer check-in</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; color: #888; margin-top: 30px;">Nenhuma criança cadastrada ainda.</p>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>
