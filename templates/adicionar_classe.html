@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Classe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background-color: #f4f4f4; display: flex; justify-content: center; }
+        header { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; }
+        .back-link { color: #008f68; text-decoration: none; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <a href="{{ url_for('dashboard_professor') }}" class="back-link"><i class="fa-solid fa-arrow-left"></i></a>
+            <h1 style="font-size: 1.2rem; color: #333;">Adicionar Classe</h1>
+        </header>
+
+        <form action="{{ url_for('adicionar_classe') }}" method="POST">
+            <div class="input-group-custom">
+                <label>Nome da Classe (Ex: Maternal 1)</label>
+                <input type="text" name="classe" required>
+            </div>
+
+            <div class="input-group-custom">
+                <label>Sua Responsabilidade</label>
+                <select name="responsabilidade">
+                    <option value="Professor Titular">Professor Titular</option>
+                    <option value="Auxiliar">Auxiliar</option>
+                </select>
+            </div>
+
+            <div class="input-group-custom">
+                <label>Disponibilidade</label>
+                <select name="disponibilidade">
+                    <option value="Todos os domingos">Todos os domingos</option>
+                    <option value="Quinzenal">Quinzenal</option>
+                    <option value="Eventual">Eventual</option>
+                </select>
+            </div>
+
+            <div class="input-group-custom">
+                <label>Turno</label>
+                <select name="turno">
+                    <option value="Manhã">Manhã</option>
+                    <option value="Noite">Noite</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-green" style="margin-top: 20px;">Criar Classe</button>
+        </form>
+    </div>
+</body>
+</html>

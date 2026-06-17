@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel da Diretoria - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Nunito', sans-serif; background: #f4f7f6; margin: 0; padding: 0; color: #333; }
+        .sidebar { width: 250px; background: #028c6a; color: white; position: fixed; height: 100vh; padding: 20px; }
+        .sidebar h2 { font-weight: 800; font-size: 1.5rem; margin-bottom: 40px; }
+        .sidebar a { color: white; text-decoration: none; display: block; padding: 10px 0; font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; }
+        
+        .main-content { margin-left: 250px; padding: 40px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 30px; }
+        h3 { color: #028c6a; font-size: 1.4rem; font-weight: 800; margin-top: 0; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #edf2f0; }
+        th { background-color: #f8f9fa; color: #555; font-weight: 700; }
+        
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+        .badge-liberado { background: #d1e7dd; color: #0f5132; }
+        .badge-bloqueado { background: #fce8e6; color: #c92a2a; }
+        
+        .btn-action { text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: white; display: inline-block; }
+        .btn-green { background: #028c6a; }
+        .btn-red { background: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2><i class="fa-solid fa-leaf"></i> CheckKids</h2>
+        <a href="#professores"><i class="fa-solid fa-chalkboard-user"></i> Equipe / Escalas</a>
+        <a href="#criancas"><i class="fa-solid fa-children"></i> Crianças</a>
+        <a href="#turmas"><i class="fa-solid fa-school"></i> Salas e Turmas</a>
+        <a href="{{ url_for('logout') }}" style="position: absolute; bottom: 20px;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+    </div>
+
+    <div class="main-content">
+        <h1>Painel Geral da Diretoria (Admin)</h1>
+        <p style="color: #666; margin-bottom: 40px;">Controle total de professores, alunos e escalas.</p>
+
+        <div id="professores" class="card">
+            <h3>Gestão de Professores e Auxiliares</h3>
+            <p>Controle quem pode preencher a disponibilidade para o próximo mês no aplicativo.</p>
+            
+            <table>
+                <tr>
+                    <th>Nome do Professor</th>
+                    <th>Função</th>
+                    <th>Classes Desejadas</th>
+                    <th>Status da Escala</th>
+                    <th>Ação</th>
+                </tr>
+                {% for prof in professores %}
+                <tr>
+                    <td>{{ prof.nome }}</td>
+                    <td>{{ prof.funcao_papeis.capitalize() if prof.funcao_papeis else "Não definida" }}</td>
+                    <td>{{ prof.classes_preferidas if prof.classes_preferidas else "Não definida" }}</td>
+                    <td>
+                        {% if prof.pode_editar_escala %}
+                            <span class="badge badge-liberado">Liberado p/ Preencher</span>
+                        {% else %}
+                            <span class="badge badge-bloqueado">Bloqueado</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if prof.pode_editar_escala %}
+                            <a href="{{ url_for('toggle_escala', prof_id=prof.id) }}" class="btn-action btn-red">Bloquear</a>
+                        {% else %}
+                            <a href="{{ url_for('toggle_escala', prof_id=prof.id) }}" class="btn-action btn-green">Liberar Acesso</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div id="criancas" class="card">
+            <h3>Banco de Crianças Registradas</h3>
+            <table>
+                <tr>
+                    <th>Nome da Criança</th>
+                    <th>Idade/Data Nasc.</th>
+                    <th>Responsável</th>
+                    <th>Restrições Médicas</th>
+                </tr>
+                {% for crianca in criancas %}
+                <tr>
+                    <td>{{ crianca.nome }}</td>
+                    <td>{{ crianca.data_nascimento }}</td>
+                    <td>Pai/Mãe ID: {{ crianca.responsavel_id }}</td>
+                    <td style="color: #c92a2a; font-weight: bold;">{{ crianca.alergias_condicoes }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+    </div>
+
+</body>
+</html>

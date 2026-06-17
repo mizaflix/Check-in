@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Presentes - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #ffffff; display: flex; justify-content: center; font-family: 'Nunito', sans-serif; margin: 0; }
+        .app-container { width: 100%; max-width: 414px; padding: 24px 20px; min-height: 90vh; }
+        
+        .nav-top { display: flex; align-items: center; margin-bottom: 25px; gap: 15px; }
+        .nav-top a { color: #028c6a; font-size: 1.3rem; text-decoration: none; }
+        .nav-top h1 { color: #028c6a; font-size: 1.3rem; font-weight: 700; margin: 0; }
+        
+        /* Banner superior informando o total de presentes */
+        .header-status { background: #eef7f4; padding: 15px; border-radius: 16px; margin-bottom: 25px; text-align: center; color: #028c6a; font-weight: 700; font-size: 0.95rem; }
+        .flash-msg { background-color: #d1e7dd; color: #0f5132; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 0.85rem; font-weight: 600; text-align: center; }
+
+        .list-title { color: #333; font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; }
+        
+        /* Card customizado para cada Criança Conforme Imagens */
+        .student-card { border: 1px solid #edf2f0; border-radius: 16px; padding: 16px; margin-bottom: 14px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .student-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .student-profile { display: flex; align-items: center; gap: 12px; }
+        .student-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
+        .student-name { font-weight: 700; color: #222; font-size: 1rem; }
+        
+        /* Badge para Alergias */
+        .health-info { background-color: #fff3cd; color: #664d03; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; display: inline-block; width: 100%; box-sizing: border-box; border-left: 4px solid #ffc107; }
+        .health-info.clean { background-color: #f8f9fa; color: #6c757d; border-left: 4px solid #ced4da; }
+        
+        /* Botões de Ação do Card */
+        .card-actions { display: flex; gap: 8px; }
+        .btn-action { flex: 1; text-align: center; padding: 8px 10px; font-size: 0.8rem; font-weight: 700; border-radius: 20px; text-decoration: none; cursor: pointer; display: block; }
+        .btn-view { border: 1px solid #028c6a; color: #028c6a; background: transparent; }
+        .btn-call { border: 1px solid #dc3545; color: white; background: #dc3545; transition: background 0.2s; }
+        .btn-call:hover { background: #bb2d3b; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="nav-top">
+            <a href="javascript:history.back()"><i class="fa-solid fa-arrow-left"></i></a>
+            <h1>{{ turma.nome_classe }}</h1>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-msg">{{ message }}</div>
+                 Maroon {% endfor %}
+            Maroon {% endif %}
+        {% endwith %}
+
+        <div class="header-status">
+            <i class="fa-regular fa-circle-check"></i> {{ checkins|length }} Crianças na classe
+        </div>
+
+        <div class="list-title">Alunos Cadastrados na Turma</div>
+
+        {% if checkins %}
+            {% for c in checkins %}
+            <div class="student-card">
+                <div class="student-header">
+                    <div class="student-profile">
+                        <img src="{{ url_for('static', filename='uploads/' + c.crianca.foto_url) }}" alt="Avatar" class="student-avatar">
+                        <div class="student-name">{{ c.crianca.nome }}</div>
+                    </div>
+                </div>
+
+                {% if c.crianca.alergias_condicoes and c.crianca.alergias_condicoes != "Nenhuma" %}
+                    <div class="health-info">
+                        ⚠️ <b>Alergias/Condições:</b> {{ c.crianca.alergias_condicoes }}
+                    </div>
+                {% else %}
+                    <div class="health-info clean">
+                        ✅ Nenhuma restrição médica informada.
+                    </div>
+                {% endif %}
+
+                <div class="card-actions">
+                    <a href="{{ url_for('detalhes_crianca', crianca_id=c.crianca.id) }}" class="btn-action btn-view">Ver Perfil</a>
+                    
+                    <form action="{{ url_for('chamar_responsavel', crianca_id=c.crianca.id, turma_id=turma.id) }}" method="POST" style="flex: 1; margin: 0;">
+                        <button type="submit" class="btn-action btn-call" style="width: 100%; border: none;">
+                            <i class="fa-solid fa-bell"></i> Chamar Responsável
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; color: #aaa; font-size: 0.9rem; margin-top: 30px;">Nenhum aluno realizou check-in nesta sala hoje.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

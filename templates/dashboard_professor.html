@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Professor - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; display: flex; justify-content: center; font-family: 'Nunito', sans-serif; margin: 0; }
+        .app-container { width: 100%; max-width: 414px; padding: 24px 20px; min-height: 100vh; box-sizing: border-box; }
+        
+        /* Topo do App */
+        .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .welcome-text h2 { margin: 0; font-size: 1.25rem; color: #222; font-weight: 800; }
+        .welcome-text p { margin: 3px 0 0 0; font-size: 0.85rem; color: #6c757d; }
+        .top-icons a { color: #028c6a; font-size: 1.2rem; text-decoration: none; margin-left: 15px; }
+        
+        .section-title { font-size: 1.05rem; font-weight: 700; color: #333; margin: 25px 0 15px 0; }
+        
+        /* CARD DA TURMA CONFORME SEGUNDA IMAGEM */
+        .scale-card { background: #ffffff; border-radius: 20px; border: 1px solid #edf2f0; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 20px; position: relative; }
+        
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .class-badge { background: #eef7f4; color: #028c6a; padding: 6px 14px; border-radius: 12px; font-weight: 800; font-size: 0.9rem; }
+        .scale-number { color: #a5a5a5; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .card-middle { margin-bottom: 20px; }
+        .date-text { font-size: 1.1rem; font-weight: 800; color: #222; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .date-text i { color: #028c6a; font-size: 1rem; }
+        
+        /* Listagem de Equipe Escalada */
+        .staff-info { display: flex; flex-direction: column; gap: 8px; background: #f8f9fa; padding: 12px; border-radius: 12px; }
+        .staff-row { font-size: 0.9rem; color: #495057; display: flex; align-items: center; gap: 6px; }
+        .staff-row strong { color: #212529; }
+
+        /* Botão de Controle Principal */
+        .btn-start-checkin { background: #028c6a; color: white; border: none; width: 100%; padding: 14px; border-radius: 25px; font-size: 0.95rem; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 12px rgba(2, 140, 106, 0.15); box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="profile-header">
+            <div class="welcome-text">
+                <h2>Olá, {{ current_user.nome }}</h2>
+                <p>Painel de Ministração / Escala</p>
+            </div>
+            <div class="top-icons">
+                <a href="{{ url_for('notificacoes') }}"><i class="fa-regular fa-bell"></i></a>
+                <a href="{{ url_for('configuracoes') }}"><i class="fa-solid fa-gear"></i></a>
+            </div>
+        </div>
+
+        <div class="section-title">Sua Próxima Alocação</div>
+
+        {% if turmas %}
+            {% for turma in turmas %}
+            <div class="scale-card">
+                <div class="card-top">
+                    <div class="class-badge">Classe {{ turma.nome_classe }} anos</div>
+                    <div class="scale-number">{{ turma.numeracao_escala if turma.numeracao_escala else "Escala Ativa" }}</div>
+                </div>
+                
+                <div class="card-middle">
+                    <div class="date-text">
+                        <i class="fa-regular fa-calendar-check"></i> {{ turma.dia_aula if turma.dia_aula else "Próximo Culto" }}
+                    </div>
+                    
+                    <div class="staff-info">
+                        <div class="staff-row">
+                            <i class="fa-solid fa-chalkboard-user" style="color: #028c6a; width: 16px;"></i>
+                            <span><b>Professora:</b> {{ turma.professor_rel.nome if turma.professor_rel else "A definir" }}</span>
+                        </div>
+                        <div class="staff-row">
+                            <i class="fa-solid fa-hands-holding-child" style="color: #ff7b5a; width: 16px;"></i>
+                            <span><b>Auxiliar:</b> {{ turma.auxiliar_rel.nome if turma.auxiliar_rel else "A definir" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if turma.status == 'fechada' %}
+                    <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='iniciar_checkin') }}" class="btn-start-checkin">Abrir Recepção / Check-in</a>
+                {% elif turma.status == 'checkin' %}
+                    <a href="{{ url_for('tela_qr', turma_id=turma.id) }}" class="btn-start-checkin" style="background: #ff7b5a;">Ver QR Code Ativo</a>
+                {% else %}
+                    <a href="{{ url_for('lista_presenca', turma_id=turma.id) }}" class="btn-start-checkin" style="background: #6c757d;">Sala em Andamento (Ver Lista)</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; color: #aaa; font-size: 0.9rem; margin-top: 40px;">Você não possui salas agendadas na escala desta semana.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

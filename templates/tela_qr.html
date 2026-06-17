@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Check-in - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #ffffff; display: flex; justify-content: center; font-family: 'Nunito', sans-serif; margin: 0; }
+        .app-container { width: 100%; max-width: 400px; padding: 24px 20px; position: relative; min-height: 95vh; }
+        
+        /* Navegação do Topo */
+        .nav-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; }
+        .nav-top a { color: #028c6a; font-size: 1.3rem; text-decoration: none; }
+        .nav-top h1 { color: #028c6a; font-size: 1.4rem; font-weight: 700; margin: 0; }
+        
+        /* Banner de Status (Verde Claro) */
+        .status-banner { background: #eef7f4; padding: 16px; border-radius: 16px; text-align: center; color: #028c6a; font-weight: 700; font-size: 0.95rem; margin-bottom: 40px; }
+        .status-banner i { margin-right: 5px; }
+        
+        /* Área do QR Code */
+        .qr-container { text-align: center; margin-bottom: 15px; }
+        .qr-image { width: 220px; height: 220px; border: 2px solid #edf2f0; border-radius: 20px; padding: 15px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .qr-hint { text-align: center; color: #a5a5a5; font-size: 0.9rem; font-weight: 600; margin-bottom: 50px; }
+        
+        /* Container de Ações Fixo Embaixo */
+        .footer-action-container { position: absolute; bottom: 30px; width: calc(100% - 40px); display: flex; flex-direction: column; gap: 12px; }
+        .btn-main-action { background: #028c6a; color: white; border: none; width: 100%; padding: 14px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 12px rgba(2, 140, 106, 0.15); }
+        .btn-secondary-action { background: #ffffff; color: #028c6a; border: 2px solid #028c6a; width: 100%; padding: 12px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; display: block; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="nav-top">
+            <a href="{{ url_for('dashboard_professor') }}"><i class="fa-solid fa-arrow-left"></i></a>
+            <h1>{{ turma.nome_classe }}</h1>
+            <a href="{{ url_for('notificacoes') }}"><i class="fa-regular fa-bell"></i></a>
+        </div>
+
+        <div class="status-banner">
+            <i class="fa-regular fa-circle-check"></i> {{ qtd_presentes }} Crianças já entraram na classe
+        </div>
+
+        <div class="qr-container">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=checkkids_turma_{{ turma.id }}" alt="QR Code da Turma" class="qr-image">
+        </div>
+        
+        <p class="qr-hint">Posicione a câmera no código acima</p>
+
+        <div class="footer-action-container">
+            <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='iniciar_aula') }}" class="btn-main-action">Finalizar Check-in</a>
+            
+            <a href="{{ url_for('lista_presenca', turma_id=turma.id) }}" class="btn-secondary-action">Lista de presentes</a>
+        </div>
+    </div>
+</body>
+</html>

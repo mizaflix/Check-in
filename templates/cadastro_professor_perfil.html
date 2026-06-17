@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Professor - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #ffffff; display: flex; justify-content: center; font-family: 'Nunito', sans-serif; margin: 0; }
+        .app-container { width: 100%; max-width: 414px; padding: 24px 20px; min-height: 100vh; box-sizing: border-box; }
+        
+        /* Top Navigation */
+        .nav-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .nav-left { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #028c6a; }
+        .nav-left i { font-size: 1.2rem; }
+        .nav-left h1 { font-size: 1.2rem; font-weight: 700; margin: 0; }
+        .nav-logo i { color: #028c6a; font-size: 1.5rem; }
+
+        /* Photo Upload Section */
+        .photo-upload-section { display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; }
+        .photo-circle { width: 90px; height: 90px; border-radius: 50%; border: 2px dashed #b0d8ce; background-color: #f4f9f8; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; overflow: hidden; margin-bottom: 15px; }
+        .photo-circle i { font-size: 1.8rem; color: #495057; }
+        .photo-circle img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; }
+        
+        .alert-badge { background-color: #fce8e6; color: #c92a2a; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+
+        /* Form Layout */
+        .form-group { position: relative; margin-bottom: 20px; }
+        .form-group label { position: absolute; top: -9px; left: 12px; background: #ffffff; padding: 0 5px; font-size: 0.75rem; color: #6c757d; font-weight: 700; }
+        .form-group input, .form-group select { width: 100%; padding: 16px 14px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1rem; color: #495057; outline: none; box-sizing: border-box; background: transparent; font-family: 'Nunito', sans-serif; }
+        .form-group input:focus, .form-group select:focus { border-color: #028c6a; }
+        
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+        
+        /* Seção Endereço */
+        .address-title { font-size: 0.9rem; font-weight: 700; color: #212529; margin: 10px 0 15px 0; }
+
+        /* Botão Cadastrar */
+        .btn-submit { background: #028c6a; color: white; border: none; width: 100%; padding: 16px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 12px rgba(2, 140, 106, 0.2); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Navegação Superior -->
+        <div class="nav-top">
+            <a href="javascript:history.back()" class="nav-left">
+                <i class="fa-solid fa-arrow-left"></i>
+                <h1>Professor</h1>
+            </a>
+            <div class="nav-logo">
+                <i class="fa-solid fa-leaf"></i>
+            </div>
+        </div>
+
+        <form action="{{ url_for('cadastro_professor_perfil') }}" method="POST" enctype="multipart/form-data">
+            
+            <!-- Upload de Imagem -->
+            <div class="photo-upload-section">
+                <label for="foto_input" class="photo-circle" id="photo_preview_container">
+                    <i class="fa-regular fa-image" id="photo_icon"></i>
+                    <img id="photo_preview" src="" alt="Preview">
+                </label>
+                <input type="file" name="foto" id="foto_input" accept="image/*" style="display: none;" onchange="previewImage(event)">
+                
+                <div class="alert-badge">
+                    <i class="fa-solid fa-circle-info"></i> Adicionar imagem é importante para identificação
+                </div>
+            </div>
+
+            <!-- Formulário -->
+            <div class="form-group">
+                <label>Nome completo</label>
+                <input type="text" name="nome" placeholder="Digite seu nome completo" required>
+            </div>
+
+            <div class="form-group">
+                <label>CPF</label>
+                <input type="text" name="cpf" placeholder="Digite seu CPF" required>
+            </div>
+
+            <div class="row">
+                <div class="form-group col">
+                    <label>Data de nascimento</label>
+                    <input type="text" name="data_nascimento" placeholder="00/00/0000" required>
+                </div>
+                <div class="form-group col">
+                    <label>Sexo</label>
+                    <select name="sexo" required>
+                        <option value="Feminino">Feminino</option>
+                        <option value="Masculino">Masculino</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Número de telefone</label>
+                <input type="text" name="telefone" placeholder="Seu número para contato" required>
+            </div>
+
+            <div class="address-title">Endereço</div>
+            
+            <div class="form-group">
+                <label>CEP</label>
+                <input type="text" name="cep" placeholder="Digite seu CEP" required>
+            </div>
+
+            <button type="submit" class="btn-submit">Cadastrar</button>
+        </form>
+    </div>
+
+    <!-- Script para mostrar a foto selecionada na bolinha -->
+    <script>
+        function previewImage(event) {
+            var reader = new FileReader();
+            reader.onload = function() {
+                var output = document.getElementById('photo_preview');
+                var icon = document.getElementById('photo_icon');
+                output.src = reader.result;
+                output.style.display = 'block';
+                icon.style.display = 'none';
+            }
+            if(event.target.files[0]) {
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        }
+    </script>
+</body>
+</html>

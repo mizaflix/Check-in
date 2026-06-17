@@ -3,30 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configurações</title>
+    <title>Configurações - CheckKids</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
         body { background-color: #f4f4f4; display: flex; justify-content: center; }
-        .app-container { width: 100%; max-width: 414px; min-height: 100vh; background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; }
+        .app-container { width: 100%; max-width: 414px; min-height: 100vh; background-color: #ffffff; padding: 24px 20px; display: flex; flex-direction: column; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .header-left { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #008f68; font-size: 1.1rem; font-weight: 700; }
+        .header-left { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #028c6a; font-size: 1.2rem; font-weight: 800; }
         
         .menu-list { display: flex; flex-direction: column; gap: 15px; }
-        .menu-item { display: flex; align-items: center; gap: 15px; padding: 18px; border: 1px solid #d1ede1; border-radius: 12px; text-decoration: none; color: #333; font-weight: 600; font-size: 1rem; transition: background 0.2s;}
-        .menu-item:hover { background-color: #eff6f3; }
-        .menu-item i { color: #008f68; font-size: 1.2rem; width: 25px; text-align: center; }
+        .menu-item { display: flex; align-items: center; gap: 15px; padding: 18px; border: 1px solid #edf2f0; border-radius: 16px; text-decoration: none; color: #333; font-weight: 700; font-size: 1rem; transition: background 0.2s;}
+        .menu-item:hover { background-color: #f4faf8; }
+        .menu-item i { color: #028c6a; font-size: 1.2rem; width: 25px; text-align: center; }
+
+        /* Estilo para botão bloqueado */
+        .menu-item.locked { background-color: #f8f9fa; border-color: #e9ecef; color: #adb5bd; cursor: not-allowed; }
+        .menu-item.locked i { color: #adb5bd; }
+        .badge-locked { background: #fce8e6; color: #c92a2a; font-size: 0.7rem; padding: 4px 8px; border-radius: 12px; margin-left: auto; font-weight: 800; }
     </style>
 </head>
 <body>
     <div class="app-container">
         <header>
-            <a href="{{ url_for('dashboard') }}" class="header-left"><i class="fa-solid fa-arrow-left"></i> Configurações</a>
-            <i class="fa-solid fa-leaf" style="color: #008f68; font-size: 1.5rem;"></i>
+            <a href="javascript:history.back()" class="header-left"><i class="fa-solid fa-arrow-left"></i> Configurações</a>
+            <i class="fa-solid fa-gear" style="color: #028c6a; font-size: 1.4rem;"></i>
         </header>
 
         <div class="menu-list">
+            
+            {% if current_user.is_professor %}
+                {% if current_user.pode_editar_escala %}
+                    <a href="{{ url_for('finalizar_cadastro_professor') }}" class="menu-item" style="border: 2px solid #028c6a; background-color: #f4faf8;">
+                        <i class="fa-solid fa-calendar-check"></i> Definir minha escala
+                    </a>
+                {% else %}
+                    <div class="menu-item locked">
+                        <i class="fa-solid fa-lock"></i> Definir minha escala
+                        <span class="badge-locked">Bloqueado</span>
+                    </div>
+                {% endif %}
+            {% endif %}
+
             <a href="{{ url_for('sobre_professores') }}" class="menu-item">
                 <i class="fa-solid fa-chalkboard-user"></i> Sobre os professores
             </a>
@@ -36,8 +55,8 @@
             <a href="{{ url_for('politica_privacidade') }}" class="menu-item">
                 <i class="fa-solid fa-shield-halved"></i> Política de privacidade
             </a>
-            <a href="{{ url_for('logout') }}" class="menu-item" style="color: #c05c5c; border-color: #fcebeb;">
-                <i class="fa-solid fa-arrow-right-from-bracket" style="color: #c05c5c;"></i> Sair do Aplicativo
+            <a href="{{ url_for('logout') }}" class="menu-item" style="color: #c92a2a; border-color: #fcebeb; margin-top: 20px;">
+                <i class="fa-solid fa-arrow-right-from-bracket" style="color: #c92a2a;"></i> Sair da conta
             </a>
         </div>
     </div>
