@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <div class="centralizacao">
+        <div style="text-align: center; margin-top: 20px;">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" height="50">
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <img src="{{ url_for('static', filename='img/ilustracao_criancas.png') }}" alt="Crianças" style="width: 70%;">
+            <h2 class="text-primary-green" style="margin-top: 20px;">Seja bem-vindo!</h2>
+            <p style="color: #666; font-size: 14px;">Departamento infantil da Igreja Presbiteriana do Jardim</p>
+        </div>
+        </div>
+
+        <form action="/login" method="POST">
+            <div class="input-group-custom">
+                <label>E-mail</label>
+                <input type="email" name="email" placeholder="Digite seu e-mail" required>
+            </div>
+            <div class="input-group-custom">
+                <label>Senha</label>
+                <input type="password" name="senha" placeholder="Digite sua senha" required>
+            </div>
+            <button type="submit" class="btn-green">Entrar</button>
+        </form>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('politica_privacidade') }}">Cadastrar agora ➔</a>
+        </div>
+    </div>
+</body>
+</html>

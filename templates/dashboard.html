@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindos - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ==========================================
+           ESTILOS GERAIS (BASE)
+        ========================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        body {
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Container simulando a tela de um celular */
+        .app-container {
+            width: 100%;
+            max-width: 414px; /* Tamanho padrão de tela mobile max */
+            min-height: 100vh;
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        /* Cores do Projeto */
+        .text-green { color: #008f68; }
+        .bg-green { background-color: #008f68; color: white; }
+        .bg-orange { background-color: #ff7b5a; color: white; }
+
+        /* ==========================================
+           CABEÇALHO E HERO (Ilustração)
+        ========================================== */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            color: #008f68;
+            font-weight: 700;
+        }
+
+        .bell-icon {
+            font-size: 1.2rem;
+            color: #008f68;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f8fbfa;
+            border-radius: 50%;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Ícone gigante caso não tenha a imagem da família ainda */
+        .hero-section i {
+            font-size: 5rem;
+            color: #ff7b5a;
+        }
+
+        /* Botões de Ação Superiores */
+        .top-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .action-chip {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            text-decoration: none;
+            color: #555;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* ==========================================
+           SESSÕES (Responsáveis e Crianças)
+        ========================================== */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-header h2 {
+            font-size: 1rem;
+            color: #008f68;
+            font-weight: 700;
+        }
+
+        .add-btn {
+            font-size: 0.8rem;
+            color: #666;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            padding: 4px 10px;
+            border-radius: 15px;
+            background: #fff;
+        }
+
+        /* Cards de Pessoas */
+        .user-card {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #f0f0f0;
+            border-radius: 25px;
+            margin-bottom: 15px;
+            background-color: #fafafa;
+        }
+
+        .avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .user-sub {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .edit-icon {
+            color: #aaa;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        /* Botões de Check-in / Check-out */
+        .status-form {
+            margin: 0;
+        }
+
+        .btn-status {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        /* Botão grande de adicionar nova criança (Empty State) */
+        .btn-add-big {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 15px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px dashed #ccc;
+        }
+        .profile-info { display: flex; align-items: center; gap: 12px; }
+.avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #008f68; }
+.avatar-placeholder { width: 50px; height: 50px; border-radius: 50%; background: #eff6f3; display: flex; justify-content: center; align-items: center; color: #008f68; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <a href="{{ url_for('configuracoes') }}" style="text-decoration: none; color: #008f68;">
+                <i class="fa-solid fa-gear" style="font-size: 1.4rem;"></i>
+            </a>
+            <h1>Bem-vindos</h1>
+            <i class="fa-regular fa-bell bell-icon"></i>
+        </header>
+
+        <div class="hero-section">
+            <img src="{{ url_for('static', filename='img/familia.png') }}">
+        </div>
+
+        <div class="top-actions">
+            <a href="#" class="action-chip">
+                <i class="fa-solid fa-chalkboard-user text-green"></i> Sobre os professores
+            </a>
+            <a href="#" class="action-chip">
+                <i class="fa-regular fa-calendar text-green"></i> Calendário do DI
+            </a>
+        </div>
+
+        <div class="section-header">
+            <h2>Responsáveis</h2>
+            <a href="{{ url_for('adicionar_responsavel') }}" style="text-decoration: none; color: inherit;">
+            <span class="badge-add">+ Adicionar responsável</span>
+        </a>
+        </div>
+
+        <div class="user-profile">
+    {% if responsavel %}
+        <div class="profile-info">
+            <img src="{{ url_for('static', filename='uploads/' + responsavel.foto_url) }}" alt="Foto do Responsável" class="avatar">
+            <div>
+                <p class="welcome-text">Bem-vindo(a),</p>
+                <h2 class="user-name">{{ responsavel.nome }}</h2>
+            </div>
+        </div>
+    {% else %}
+        <div class="profile-info">
+            <div class="avatar-placeholder"><i class="fa-solid fa-user"></i></div>
+            <div>
+                <p class="welcome-text">Bem-vindo(a),</p>
+                <h2 class="user-name">Usuário</h2>
+            </div>
+        </div>
+    {% endif %}
+    
+</div>
+
+        <br>
+
+        <div class="section-header">
+            <h2>Crianças</h2>
+            <a href="{{ url_for('cadastrar_crianca') }}" class="add-btn"><i class="fa-solid fa-plus"></i> Adicionar criança</a>
+        </div>
+
+        {% if criancas %}
+            {% for crianca in criancas %}
+            <div class="user-card">
+                <div class="avatar">
+                    {% if crianca.foto_url != 'default.png' %}
+                        <img src="{{ url_for('static', filename='uploads/' + crianca.foto_url) }}" alt="Foto">
+                    {% else %}
+                        <i class="fa-solid fa-child text-green"></i>
+                    {% endif %}
+                </div>
+                
+                <div class="user-info">
+                    <p class="user-name">{{ crianca.nome }}</p>
+                    <p class="user-sub">Cadastrado(a)</p>
+                </div>
+                
+                <div class="status-form">
+                    {% if crianca.esta_presente %}
+                        <a href="{{ url_for('escanear_qr', crianca_id=crianca.id) }}" class="btn-status bg-orange" style="text-decoration: none; display: inline-block; text-align: center;">Fazer check-out</a>
+                    {% else %}
+                        <a href="{{ url_for('escanear_qr', crianca_id=crianca.id) }}" class="btn-status bg-green" style="text-decoration: none; display: inline-block; text-align: center;">Fazer check-in</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <a href="{{ url_for('cadastrar_crianca') }}" class="btn-add-big">
+                <i class="fa-solid fa-plus"></i> Adicionar minha criança
+            </a>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>

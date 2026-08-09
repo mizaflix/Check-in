@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <a href="{{ url_for('login') }}" class="text-primary-green text-decoration-none">← Voltar</a>
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" height="30">
+        </div>
+
+        <h2 class="text-primary-green">Fazer cadastro</h2>
+        <p style="color: #666; font-size: 14px; margin-bottom: 30px;">Crie sua conta para acessar o sistema</p>
+
+        <form action="{{ url_for('cadastro') }}" method="POST">
+            <div class="input-group-custom">
+                <label>E-mail</label>
+                <input type="email" name="email" placeholder="Digite seu melhor e-mail" required>
+            </div>
+            <div class="input-group-custom">
+                <label>Senha</label>
+                <input type="password" name="senha" placeholder="Digite uma senha forte" required>
+            </div>
+
+            <p style="font-weight: 600; font-size: 13px; margin-bottom: 10px;">Qual será o seu perfil?</p>
+            <div style="margin-bottom: 30px;">
+                <label style="display: block; margin-bottom: 10px; font-size: 14px;">
+                    <input type="radio" name="perfil" value="responsavel" required> Responsável pela minha criança
+                </label>
+                <label style="display: block; font-size: 14px;">
+                    <input type="radio" name="perfil" value="admin"> Administrativo (Professor/DI)
+                </label>
+            </div>
+
+            <button type="submit" class="btn-green">Próximo passo</button>
+        </form>
+    </div>
+</body>
+</html>

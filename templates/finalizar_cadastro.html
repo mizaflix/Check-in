@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Cadastro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background-color: #f4f4f4; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; min-height: 100vh; background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; }
+        header { display: flex; justify-content: center; align-items: center; margin-bottom: 20px; position: relative; }
+        .header-title { color: #008f68; font-size: 1.2rem; font-weight: 700; }
+        .header-icon { position: absolute; right: 0; color: #008f68; font-size: 1.5rem; }
+        
+        .photo-upload { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; }
+        .photo-circle { width: 90px; height: 90px; background-color: #eff6f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #333; font-size: 1.5rem; margin-bottom: 15px; border: 2px dashed #b5d5c5; cursor: pointer; overflow: hidden; background-size: cover; background-position: center;}
+        .warning-badge { background-color: #fcebeb; color: #c05c5c; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+        
+        .input-wrapper { position: relative; margin-bottom: 20px; }
+        .input-wrapper label { position: absolute; top: -8px; left: 15px; background: white; padding: 0 5px; font-size: 0.75rem; color: #888; font-weight: 600;}
+        .input-wrapper input, .input-wrapper select { width: 100%; padding: 14px; border: 1px solid #d1ede1; border-radius: 8px; font-size: 0.95rem; outline: none; background-color: transparent;}
+        .input-wrapper input:focus, .input-wrapper select:focus { border-color: #008f68; }
+        .row { display: flex; gap: 15px; }
+        .row .input-wrapper { flex: 1; }
+        .btn-submit { background-color: #008f68; color: white; border: none; padding: 16px; border-radius: 25px; font-size: 1rem; font-weight: 700; width: 100%; cursor: pointer; margin-top: auto; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <span class="header-title">Finalize seu Perfil</span>
+            <i class="fa-solid fa-leaf header-icon"></i>
+        </header>
+
+        <form action="{{ url_for('finalizar_cadastro') }}" method="POST" enctype="multipart/form-data" style="display: flex; flex-direction: column; flex: 1;">
+            
+            <div class="photo-upload">
+                <div class="photo-circle" id="preview-box" onclick="document.getElementById('input-foto').click();">
+                    <i class="fa-regular fa-image" id="icone-foto"></i>
+                </div>
+                <input type="file" id="input-foto" name="foto" accept="image/*" style="display: none;" onchange="mostrarPreview(event)">
+                
+                <div class="warning-badge"><i class="fa-solid fa-circle-info"></i> Adicionar imagem é importante para identificação</div>
+            </div>
+
+            <div class="input-wrapper"><label>Nome completo</label><input type="text" name="nome" placeholder="Digite seu nome completo" required></div>
+            <div class="input-wrapper"><label>CPF</label><input type="text" name="cpf" placeholder="Digite seu CPF" required></div>
+            <div class="row">
+                <div class="input-wrapper"><label>Data de nascimento</label><input type="text" name="data_nascimento" placeholder="00/00/0000" required></div>
+                <div class="input-wrapper">
+                    <label>Sexo</label>
+                    <select name="sexo" required>
+                        <option value="" disabled selected>Selecione</option>
+                        <option value="Feminino">Feminino</option>
+                        <option value="Masculino">Masculino</option>
+                    </select>
+                </div>
+            </div>
+            <div class="input-wrapper"><label>Número de telefone</label><input type="tel" name="telefone" placeholder="Seu número para contato" required></div>
+            <div class="input-wrapper"><label>Vínculo</label><input type="text" name="vinculo" placeholder="Ex: Mãe, Pai, Avó..." required></div>
+            <div class="input-wrapper"><label>Endereço</label><input type="text" name="endereco" placeholder="Rua, Número, Bairro"></div>
+            
+            <button type="submit" class="btn-submit">Concluir Cadastro</button>
+        </form>
+    </div>
+
+    <script>
+        function mostrarPreview(event) {
+            var input = event.target;
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var previewBox = document.getElementById('preview-box');
+                    var icone = document.getElementById('icone-foto');
+                    
+                    previewBox.style.backgroundImage = 'url(' + e.target.result + ')';
+                    icone.style.display = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+</body>
+</html>

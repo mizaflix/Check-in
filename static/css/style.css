@@ -1,0 +1,94 @@
+:root {
+    --primary-green: #00896f;
+    --bg-light: #f4f7f6;
+    --white: #ffffff;
+    --text-muted: #6c757d;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--bg-light);
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center;     /* Centraliza verticalmente */
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Container que simula o celular */
+.app-container {
+    width: 100%;
+    max-width: 430px;
+    min-height: 100vh;
+    background-color: var(--white);
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column; /* AQUI ESTAVA O ERRO! Agora está corrigido */
+    justify-content: flex-start;
+    align-items: center;
+    position: relative;
+    box-shadow: none;
+}
+.centralizacao{
+  align-items: center;
+  display: block;
+}
+/* Ajustes específicos para telas de PC */
+@media (min-width: 500px) {
+    .app-container {
+        min-height: 90vh;
+        border-radius: 30px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        margin: 20px;
+        overflow-y: auto;
+    }
+}
+
+/* Estilização dos Inputs */
+.input-group-custom {
+    margin-bottom: 20px;
+}
+
+.input-group-custom label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 5px;
+    margin-left: 10px;
+}
+
+.input-group-custom input, .input-group-custom select {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 15px;
+    background-color: #fafafa;
+    outline: none;
+}
+
+/* Botão Verde */
+.btn-green {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--primary-green);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-green:hover {
+    background-color: #006d58;
+}
+
+.text-primary-green { color: var(--primary-green); }
+.text-decoration-none { text-decoration: none; }

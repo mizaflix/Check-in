@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard do Professor - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f4f4; display: flex; justify-content: center; font-family: 'Nunito', sans-serif; margin: 0; }
+        .app-container { width: 100%; max-width: 414px; background: #ffffff; min-height: 100vh; padding: 24px 20px; box-sizing: border-box; }
+        
+        /* Cabeçalho */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .logo-area { display: flex; align-items: center; gap: 8px; color: #028c6a; font-size: 1.5rem; }
+        .header-title { font-size: 1.4rem; font-weight: 800; color: #028c6a; flex-grow: 1; text-align: center; }
+        .bell-icon { color: #028c6a; font-size: 1.3rem; text-decoration: none; }
+
+        /* Ilustração */
+        .hero-illustration { text-align: center; margin-bottom: 25px; }
+        .hero-illustration img { width: 180px; height: 180px; border-radius: 50%; object-fit: cover; background-color: #e8f5e9; }
+
+        /* Botões de atalho rápidos */
+        .quick-actions { display: flex; gap: 10px; margin-bottom: 30px; }
+        .action-btn { flex: 1; background: #f8f9fa; border: 1px solid #edf2f0; padding: 12px 10px; border-radius: 20px; text-align: center; text-decoration: none; color: #555; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .action-btn i { color: #6c757d; }
+
+        /* Seção "Sua sala" */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .section-title { font-size: 1.1rem; font-weight: 800; color: #028c6a; }
+        .btn-add { background: transparent; border: 1px solid #028c6a; color: #028c6a; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; text-decoration: none; }
+
+        /* Cartões de Escala */
+        .class-card { border: 1px solid #edf2f0; border-radius: 16px; padding: 16px; margin-bottom: 15px; display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: 0.2s; }
+        .class-card:hover { background-color: #fcfcfc; }
+        
+        /* Destaque para classe em andamento */
+        .class-card.active { border-color: #028c6a; background-color: #f4faf8; }
+        
+        .class-info-left h4 { margin: 0 0 4px 0; font-size: 1.05rem; color: #028c6a; }
+        .class-info-left p { margin: 0; font-size: 0.85rem; color: #adb5bd; }
+        
+        .class-info-right { text-align: right; }
+        .class-info-right p { margin: 0; font-size: 0.85rem; color: #333; font-weight: 700; }
+        .class-info-right span { font-size: 0.75rem; color: #adb5bd; }
+
+        /* Botões da turma ativa */
+        .active-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; margin-bottom: 30px; }
+        .btn-primary { background: #028c6a; color: white; padding: 14px; border-radius: 25px; text-align: center; text-decoration: none; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; }
+        .btn-outline { background: white; color: #028c6a; padding: 14px; border-radius: 25px; text-align: center; text-decoration: none; font-weight: 700; font-size: 1rem; border: 2px solid #028c6a; cursor: pointer; }
+
+        .empty-state { text-align: center; color: #adb5bd; font-size: 0.95rem; margin-top: 40px; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        
+        <div class="header">
+            <div class="logo-area"><i class="fa-solid fa-leaf"></i></div>
+            <div class="header-title">Bem-vindos</div>
+            <a href="{{ url_for('configuracoes') }}" class="bell-icon"><i class="fa-solid fa-gear"></i></a>
+        </div>
+
+        <div class="hero-illustration">
+            <img src="{{ url_for('static', filename='images/family_illustration.png') }}" alt="Família" onerror="this.style.display='none'">
+        </div>
+
+        <!-- MENSAGENS DE AVISO -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div style="background-color: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 700; border: 1px solid #c3e6cb;">
+                        <i class="fa-solid fa-circle-check"></i> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="quick-actions">
+            <a href="{{ url_for('sobre_professores') }}" class="action-btn">
+                <i class="fa-solid fa-graduation-cap"></i> Sobre os professores
+            </a>
+            <a href="{{ url_for('calendario') }}" class="action-btn">
+                <i class="fa-regular fa-calendar-days"></i> Calendário do DI
+            </a>
+        </div>
+
+        <!-- Seção: Escala do Professor -->
+        <div class="section-header">
+            <div class="section-title">Sua Escala do Mês</div>
+        </div>
+
+        <div class="class-list">
+            {% if turmas %}
+                {% for turma in turmas %}
+                    {% set papel = 'Professor Titular' if turma.professor_id == current_user.id else 'Auxiliar' %}
+                    {% set esta_ativa = turma.status in ['checkin', 'acontecendo'] %}
+                    
+                    <div class="class-card {% if esta_ativa %}active{% endif %}" {% if turma.status == 'finalizada' %} style="opacity: 0.5;" {% endif %}>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div class="class-info-left">
+                                <h4>Sala de {{ turma.nome_classe }}</h4>
+                                <p style="color: #028c6a; font-weight: 800; margin-top: 5px; font-size: 0.95rem;">
+                                    <i class="fa-solid fa-id-badge"></i> Função: {{ papel }}
+                                </p>
+                            </div>
+                            <div class="class-info-right">
+                                <p>{{ turma.numeracao_escala }}</p>
+                                <span>{{ turma.dia_aula }}</span>
+                            </div>
+                        </div>
+
+                        <div style="border-top: 1px solid #edf2f0; padding-top: 15px; margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+                            
+                            {% if turma.status == 'fechada' %}
+                                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='iniciar_checkin') }}" class="btn-primary" style="padding: 12px; font-size: 0.9rem;">
+                                    <i class="fa-solid fa-play"></i> Iniciar Check-in da Turma
+                                </a>
+                            
+                            {% elif esta_ativa %}
+                                <a href="{{ url_for('lista_presenca', turma_id=turma.id) }}" class="btn-outline" style="padding: 12px; font-size: 0.9rem;">
+                                    <i class="fa-solid fa-clipboard-user"></i> Ver Detalhes e Lista de Presença
+                                </a>
+                                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='finalizar') }}" class="btn-primary" style="padding: 12px; font-size: 0.9rem;">
+                                    <i class="fa-solid fa-stop"></i> Finalizar (Check-out)
+                                </a>
+                                
+                            {% else %}
+                                <div style="text-align: center; color: #999; font-size: 0.85rem; font-weight: 800;">
+                                    <i class="fa-solid fa-check-circle"></i> Turma Concluída
+                                </div>
+                            {% endif %}
+                            
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    Você ainda não foi escalado para nenhuma turma neste mês. O administrador avisará quando a escala estiver pronta!
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>

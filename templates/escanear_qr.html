@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escanear QR Code - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background-color: #f4f4f4; display: flex; justify-content: center; }
+        .app-container {
+            width: 100%; max-width: 414px; min-height: 100vh;
+            background-color: #1a1a1a;
+            padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            position: relative; display: flex; flex-direction: column;
+        }
+
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-link { text-decoration: none; color: #ffffff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        
+        .camera-view {
+            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            position: relative;
+        }
+
+        /* Container da câmera */
+        #reader {
+            width: 100%; max-width: 300px;
+            border: 4px solid #008f68; border-radius: 20px;
+            overflow: hidden; background: #000;
+        }
+
+        /* Remove os estilos feios padrão do html5-qrcode */
+        #reader__dashboard_section_csr span, #reader__dashboard_section_swaplink { color: white !important; }
+        #reader button { background: #008f68; color: white; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+
+        .instructions { color: white; text-align: center; margin-top: 30px; font-size: 1rem; z-index: 10; padding: 0 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <a href="javascript:history.back()" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> Cancelar
+            </a>
+        </header>
+
+        <div class="camera-view">
+            <div id="reader"></div>
+            
+            <p class="instructions">
+                Aponte a câmera para o QR Code do professor para confirmar o 
+                {% if crianca.esta_presente %} <b style="color: #ff7b5a;">Check-out</b> {% else %} <b style="color: #008f68;">Check-in</b> {% endif %} 
+                de <b>{{ crianca.nome }}</b>.
+            </p>
+        </div>
+
+        <form id="formCheckin" action="{{ url_for('toggle_checkin', crianca_id=crianca.id) }}" method="POST" style="display: none;">
+            <input type="hidden" name="turma_id" id="turma_id_input">
+        </form>
+
+    </div>
+
+    <script>
+        // Função que roda quando a câmera acha um QR Code
+        function onScanSuccess(decodedText, decodedResult) {
+            // O QR gerado pelo professor é: checkkids_turma_ID
+            if(decodedText.startsWith("checkkids_turma_")) {
+                // Pega apenas o número (ID) que vem depois de "checkkids_turma_"
+                let turmaId = decodedText.split("_")[2]; 
+                
+                // Coloca o ID no formulário escondido
+                document.getElementById('turma_id_input').value = turmaId;
+                
+                // Para a câmera para não ler duas vezes
+                html5QrcodeScanner.clear();
+                
+                // Envia o formulário automaticamente para o backend!
+                document.getElementById('formCheckin').submit();
+            } else {
+                alert("QR Code inválido! Leia o código gerado pelo professor do CheckKids.");
+            }
+        }
+
+        // Configuração da câmera
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: {width: 250, height: 250} },
+            false);
+            
+        // Inicia a câmera pedindo permissão ao usuário
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+
+</body>
+</html>

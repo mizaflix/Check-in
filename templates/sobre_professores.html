@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professores</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background-color: #f4f4f4; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; min-height: 100vh; background-color: #ffffff; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header-left { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #008f68; font-size: 1.1rem; font-weight: 700; }
+        
+        .illustration { width: 200px; height: 200px; background-color: #eff6f3; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 20px 0; font-size: 5rem; color: #008f68; }
+        
+        .content { color: #555; font-size: 0.95rem; line-height: 1.6; text-align: justify; }
+        .content p { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <a href="{{ url_for('configuracoes') }}" class="header-left"><i class="fa-solid fa-arrow-left"></i> Professores</a>
+            <i class="fa-regular fa-bell" style="color: #008f68; font-size: 1.2rem;"></i>
+        </header>
+
+        <div class="illustration">
+            <i class="fa-solid fa-users-viewfinder"></i>
+        </div>
+
+        <div class="content">
+            <p>Os professores do departamento infantil da Igreja Presbiteriana do Jardim exercem uma missão de grande responsabilidade, contribuindo para a formação espiritual das crianças. Para isso, passam por um processo de capacitação, onde recebem orientações sobre ensino, cuidado e a melhor forma de transmitir a Palavra de Deus de maneira clara e adequada.</p>
+            <p>Além da preparação, há também um cuidado com a idoneidade, garantindo que todos não possuam antecedentes criminais, o que assegura um ambiente seguro para as crianças.</p>
+            <p>Acima de tudo, são pessoas comprometidas com a Palavra de Deus, dedicadas ao ensino.</p>
+        </div>
+    </div>
+</body>
+</html>

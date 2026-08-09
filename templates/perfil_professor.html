@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Nunito', sans-serif; margin: 0; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; background: #ffffff; min-height: 100vh; box-sizing: border-box; }
+        
+        .header { padding: 30px 20px; text-align: center; border-bottom: 1px solid #e9ecef; }
+        .nav-back { position: absolute; left: 20px; top: 30px; color: #212529; text-decoration: none; font-size: 1.2rem; }
+        .profile-pic { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 15px; border: 3px solid #028c6a; }
+        .profile-name { font-size: 1.3rem; font-weight: 800; color: #212529; margin: 0; }
+        .profile-role { font-size: 0.9rem; color: #6c757d; margin: 5px 0 0 0; }
+
+        .menu-section { padding: 20px; }
+        .menu-title { font-size: 1.1rem; font-weight: 800; color: #212529; margin-bottom: 15px; }
+        
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #e9ecef; text-decoration: none; color: #495057; font-weight: 600; }
+        .menu-item i.right { color: #adb5bd; }
+        
+        .locked { color: #adb5bd; cursor: not-allowed; }
+        .badge-locked { background: #fce8e6; color: #c92a2a; font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; margin-left: 10px; font-weight: 800; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <a href="{{ url_for('dashboard_professor') }}" class="nav-back"><i class="fa-solid fa-arrow-left"></i></a>
+            <img src="{{ url_for('static', filename='uploads/' + current_user.foto_perfil) }}" alt="Foto" class="profile-pic">
+            <h2 class="profile-name">{{ current_user.nome }}</h2>
+            <p class="profile-role">Professor / Auxiliar</p>
+        </div>
+
+        <div class="menu-section">
+            <div class="menu-title">Meu perfil</div>
+            <a href="#" class="menu-item">
+                <span>Editar dados</span>
+                <i class="fa-solid fa-chevron-right right"></i>
+            </a>
+
+            <div class="menu-title" style="margin-top: 30px;">Configurações</div>
+            
+            {% if current_user.pode_editar_escala %}
+                <a href="{{ url_for('finalizar_cadastro_professor') }}" class="menu-item" style="color: #028c6a;">
+                    <span>Definir minha escala</span>
+                    <i class="fa-solid fa-chevron-right right"></i>
+                </a>
+            {% else %}
+                <div class="menu-item locked">
+                    <span>Definir minha escala <span class="badge-locked"><i class="fa-solid fa-lock"></i> Bloqueado</span></span>
+                    <i class="fa-solid fa-chevron-right right"></i>
+                </div>
+            {% endif %}
+            
+            <a href="{{ url_for('logout') }}" class="menu-item" style="color: #c92a2a; border-bottom: none; margin-top: 20px;">
+                <span>Sair da conta</span>
+                <i class="fa-solid fa-arrow-right-from-bracket right"></i>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

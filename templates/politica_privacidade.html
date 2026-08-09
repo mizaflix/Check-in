@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background-color: #f4f4f4; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; height: 100vh; background-color: #ffffff; padding: 30px 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        .logo-icon { width: 40px; margin-bottom: 20px; color: #008f68; font-size: 2.5rem; }
+        h1 { color: #008f68; font-size: 1.5rem; margin-bottom: 20px; font-weight: 700; text-align: center;}
+
+        .policy-content { flex: 1; overflow-y: auto; width: 100%; padding-right: 10px; margin-bottom: 20px; font-size: 0.85rem; color: #555; line-height: 1.5; text-align: justify; }
+        .policy-content::-webkit-scrollbar { width: 5px; }
+        .policy-content::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .policy-content::-webkit-scrollbar-thumb { background: #c1e1d2; border-radius: 10px; }
+
+        .policy-content h2 { font-size: 0.9rem; color: #333; margin-top: 15px; margin-bottom: 5px; }
+        .policy-content ul { margin-left: 20px; margin-bottom: 10px; }
+        .policy-content li { margin-bottom: 3px; }
+
+        .consent-area { display: flex; align-items: center; gap: 15px; width: 100%; background: #f9f9f9; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .consent-text { font-size: 0.85rem; color: #333; font-weight: 600; flex: 1; }
+
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; flex-shrink: 0;}
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #008f68; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .btn-submit { background-color: #008f68; color: white; border: none; padding: 16px; border-radius: 25px; font-size: 1rem; font-weight: 700; width: 100%; cursor: pointer; text-decoration: none; text-align: center; transition: 0.3s;}
+        .btn-disabled { background-color: #b5d5c5; cursor: not-allowed; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <i class="fa-solid fa-leaf logo-icon"></i>
+        <h1>Política de privacidade</h1>
+
+        <div class="policy-content">
+            <h2>1. Introdução</h2>
+            <p>Esta Política de Privacidade descreve como o aplicativo de check-in e check-out do Departamento Infantil coleta, utiliza e protege os dados pessoais de crianças e seus responsáveis.</p>
+            <h2>2. Dados Coletados</h2>
+            <p>Para garantir a segurança das crianças, podemos coletar:</p>
+            <h2>2.1 Dados dos Responsáveis</h2>
+            <ul><li>Nome, Telefone, Documento</li></ul>
+            <h2>2.2 Dados da Criança</h2>
+            <ul><li>Nome, Idade, Informações relevantes (alergias)</li></ul>
+            <h2>3. Finalidade da Coleta de Dados</h2>
+            <ul><li>Garantir a segurança e controlar entrada/saída</li></ul>
+            <h2>4. Compartilhamento e 5. Retenção</h2>
+            <p>Os dados não serão vendidos e são mantidos o tempo necessário.</p>
+            <h2>6. Direitos dos Responsáveis</h2>
+            <p>Solicitar acesso, correção ou exclusão.</p>
+        </div>
+
+        <div class="consent-area">
+            <label class="switch">
+                <input type="checkbox" id="concordoCheck" onchange="liberarBotao()">
+                <span class="slider"></span>
+            </label>
+            <div class="consent-text">Li e concordo com os termos, condições de uso e política de privacidade</div>
+        </div>
+
+        <a href="{{ url_for('cadastro') }}" id="btnContinuar" class="btn-submit btn-disabled">Continuar para Cadastro</a>
+    </div>
+
+    <script>
+        function liberarBotao() {
+            var checkbox = document.getElementById("concordoCheck");
+            var botao = document.getElementById("btnContinuar");
+            if (checkbox.checked) { botao.classList.remove("btn-disabled"); } 
+            else { botao.classList.add("btn-disabled"); }
+        }
+    </script>
+</body>
+</html>
