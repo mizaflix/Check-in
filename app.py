@@ -958,8 +958,6 @@ def configurar_sqlite():
     if not database_url.startswith('sqlite'):
         return
 
-    # O Flask-SQLAlchemy coloca bancos SQLite relativos
-    # dentro da pasta instance/.
     db_path = os.path.join(
         app.instance_path,
         'banco.db'
@@ -1017,27 +1015,73 @@ def configurar_sqlite():
 
         if connection:
             connection.close()
-if __name__ == '__main__':
 
-    with app.app_context():
 
-        # Configura o SQLite uma única vez
-        configurar_sqlite()
+# ==========================================================
+# INICIALIZAÇÃO DO BANCO
+# ==========================================================
 
-        # Cria as tabelas
-        db.create_all()
+def inicializar_banco():
+    """
+    Inicializa o banco de dados tanto localmente quanto no Render.
 
-        # Cria usuários de teste
-        try:
+    No PostgreSQL:
+    - cria as tabelas caso não existam;
+    - cria os usuários de teste.
+
+    No SQLite:
+    - configura o SQLite;
+    - cria as tabelas;
+    - cria os usuários de teste.
+    """
+
+    print("=" * 60)
+    print("INICIALIZANDO BANCO DE DADOS")
+    print("=" * 60)
+
+    try:
+
+        with app.app_context():
+
+            # Configuração específica do SQLite
+            configurar_sqlite()
+
+            # Cria as tabelas definidas nos modelos
+            db.create_all()
+
+            print("Tabelas verificadas/criadas com sucesso.")
+
+            # Cria usuários de teste
             criar_usuario_teste()
 
-        except Exception as e:
-            db.session.rollback()
-
             print(
-                "Erro ao criar contas de teste:",
-                repr(e)
+                "Usuários de teste verificados/criados com sucesso."
             )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print("=" * 60)
+        print("ERRO AO INICIALIZAR BANCO")
+        print(repr(e))
+        print("=" * 60)
+
+        raise
+
+
+# ==========================================================
+# INICIALIZAÇÃO AUTOMÁTICA
+# ==========================================================
+
+inicializar_banco()
+
+
+# ==========================================================
+# EXECUÇÃO LOCAL
+# ==========================================================
+
+if __name__ == '__main__':
 
     app.run(
         host='0.0.0.0',
