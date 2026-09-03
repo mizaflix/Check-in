@@ -1,30 +1,74 @@
 import os
 from datetime import datetime
+import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    login_required,
+    logout_user,
+    current_user
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from sqlalchemy import event
 
-# ==========================================
-# CONFIGURAÇÕES INICIAIS
-# ==========================================
+
 app = Flask(__name__)
+
 app.config['SECRET_KEY'] = 'chave_secreta_checkkids_ipjardim'
-database_url = os.getenv('DATABASE_URL', 'sqlite:///banco.db')
+
+database_url = os.getenv(
+    'DATABASE_URL',
+    'sqlite:///banco.db'
+)
+
 if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    database_url = database_url.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-UPLOAD_FOLDER = os.path.join('static', 'uploads')
+if database_url.startswith('sqlite'):
+
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'connect_args': {
+            'timeout': 60,
+            'check_same_thread': False
+        },
+        'pool_pre_ping': True
+    }
+
+else:
+
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True
+    }
+
+UPLOAD_FOLDER = os.path.join(
+    'static',
+    'uploads'
+)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+os.makedirs(
+    UPLOAD_FOLDER,
+    exist_ok=True
+)
+
 db = SQLAlchemy(app)
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-login_manager.login_message = "Por favor, faça login para acessar esta página."
+login_manager.login_message = (
+    "Por favor, faça login para acessar esta página."
+)
 
 # ==========================================
 # MODELOS DO BANCO DE DADOS
@@ -85,24 +129,46 @@ class Crianca(db.Model):
 
 class Turma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nome_classe = db.Column(db.String(100), nullable=False) # Ex: "3-4", "5-6" ou "7"
-    dia_aula = db.Column(db.String(50), nullable=True)      # Ex: "Domingo - 21/06" ou "Próximo Domingo"
-    numeracao_escala = db.Column(db.String(20), nullable=True) # Ex: "Escala #04" ou "Semana 1"
-    
-    # Vínculos da Escala Automática
-    professor_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
-    auxiliar_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
-    
-    responsabilidade = db.Column(db.String(50), default='Professor Titular')
+    nome_classe = db.Column(db.String(100), nullable=False)
+    dia_aula = db.Column(db.String(50), nullable=True)
+    numeracao_escala = db.Column(db.String(20), nullable=True)
+
+    professor_id = db.Column(
+        db.Integer,
+        db.ForeignKey('usuario.id'),
+        nullable=True
+    )
+
+    auxiliar_id = db.Column(
+        db.Integer,
+        db.ForeignKey('usuario.id'),
+        nullable=True
+    )
+
+    responsabilidade = db.Column(
+        db.String(50),
+        default='Professor Titular'
+    )
+
     disponibilidade = db.Column(db.String(50))
     turno = db.Column(db.String(50))
     status = db.Column(db.String(20), default='fechada')
-    
-    # Relacionamentos explícitos para buscar os nomes na segunda imagem
-    professor_rel = db.relationship('Usuario', foreign_keys=[professor_id])
-    auxiliar_rel = db.relationship('Usuario', foreign_keys=[auxiliar_id])
-    checkins = db.relationship('Checkin', backref='turma', lazy=True)
-    checkins = db.relationship('Checkin', backref='turma', lazy=True)
+
+    professor_rel = db.relationship(
+        'Usuario',
+        foreign_keys=[professor_id]
+    )
+
+    auxiliar_rel = db.relationship(
+        'Usuario',
+        foreign_keys=[auxiliar_id]
+    )
+
+    checkins = db.relationship(
+        'Checkin',
+        backref='turma',
+        lazy=True
+    )
 
 class Checkin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -151,41 +217,66 @@ def login():
 @app.route('/cadastro', methods=['GET', 'POST'])
 def cadastro():
     if request.method == 'POST':
-        email = request.form.get('email')
-        senha = request.form.get('senha')
-        
-        # 1. CAPTURA A OPÇÃO MARCADA NO HTML (responsavel ou admin)
+
+        email = request.form.get('email', '').strip().lower()
+        senha = request.form.get('senha', '')
         perfil = request.form.get('perfil')
 
+        # Validação
+        if not email or not senha:
+            flash('Preencha o e-mail e a senha.', 'danger')
+            return redirect(url_for('cadastro'))
+
+        # Verifica se já existe
         user_existente = Usuario.query.filter_by(email=email).first()
+
         if user_existente:
             flash('Este e-mail já está cadastrado.', 'danger')
             return redirect(url_for('cadastro'))
 
-        senha_criptografada = generate_password_hash(senha)
-        
-        # 2. SE FOR ADMIN/PROFESSOR, MARCAMOS COMO TRUE
-        is_prof = True if perfil == 'admin' else False
-        
-        novo_usuario = Usuario(
-            nome='Novo Usuário', 
-            email=email,
-            senha_hash=senha_criptografada,
-            is_admin=False,
-            is_professor=is_prof # Salva no banco de acordo com a escolha
-        )
-        db.session.add(novo_usuario)
-        db.session.commit()
+        try:
+            senha_criptografada = generate_password_hash(senha)
 
-        login_user(novo_usuario)
-        
-        # 3. REDIRECIONA PARA A TELA CORRETA
-        if is_prof:
-            # Se escolheu Professor/DI, vai para o perfil do professor
-            return redirect(url_for('cadastro_professor_perfil'))
-        else:
-            # Se escolheu Responsável, vai para o cadastro do pai/mãe
+            # Mantendo sua regra atual:
+            # perfil "admin" entra no fluxo de professor
+            is_prof = perfil == 'admin'
+
+            novo_usuario = Usuario(
+                nome='Novo Usuário',
+                email=email,
+                senha_hash=senha_criptografada,
+                is_admin=False,
+                is_professor=is_prof
+            )
+
+            db.session.add(novo_usuario)
+
+            # Commit protegido
+            db.session.commit()
+
+            # Login somente após salvar com sucesso
+            login_user(novo_usuario)
+
+            if is_prof:
+                return redirect(url_for('cadastro_professor_perfil'))
+
             return redirect(url_for('finalizar_cadastro'))
+
+        except Exception as e:
+            db.session.rollback()
+
+            print("=" * 60)
+            print("ERRO NO CADASTRO")
+            print(repr(e))
+            print("=" * 60)
+
+            flash(
+                'Não foi possível concluir o cadastro. '
+                'Tente novamente.',
+                'danger'
+            )
+
+            return redirect(url_for('cadastro'))
 
     return render_template('cadastro.html')
 
@@ -807,36 +898,151 @@ def perfil_professor():
 # GERAÇÃO DE DADOS DE TESTE
 # ==========================================
 def criar_usuario_teste():
-    # 1. Usuário Responsável de Teste
-    user = Usuario.query.filter_by(email='teste@ipjardim.com').first()
-    if not user:
-        senha_criptografada = generate_password_hash('123456')
-        novo_usuario = Usuario(
-            nome='João Responsável', 
-            email='teste@ipjardim.com', 
-            telefone='(83) 99999-8888',
-            senha_hash=senha_criptografada
-        )
-        db.session.add(novo_usuario)
-    
-    # 2. Usuário Professor de Teste
-    prof = Usuario.query.filter_by(email='professor@ipjardim.com').first()
-    if not prof:
-        senha_prof_criptografada = generate_password_hash('123456')
-        novo_prof = Usuario(
-            nome='Prof. Carlos Silva',
-            email='professor@ipjardim.com',
-            telefone='(83) 98888-7777',
-            senha_hash=senha_prof_criptografada,
-            is_professor=True
-        )
-        db.session.add(novo_prof)
-        
-    db.session.commit()
-    print("Contas de teste prontas!")
+    try:
+        # ==========================================
+        # USUÁRIO RESPONSÁVEL DE TESTE
+        # ==========================================
+        user = Usuario.query.filter_by(
+            email='teste@ipjardim.com'
+        ).first()
 
+        if not user:
+            senha_criptografada = generate_password_hash('123456')
+
+            novo_usuario = Usuario(
+                nome='João Responsável',
+                email='teste@ipjardim.com',
+                telefone='(83) 99999-8888',
+                senha_hash=senha_criptografada,
+                is_admin=False,
+                is_professor=False
+            )
+
+            db.session.add(novo_usuario)
+
+        # ==========================================
+        # USUÁRIO PROFESSOR DE TESTE
+        # ==========================================
+        prof = Usuario.query.filter_by(
+            email='professor@ipjardim.com'
+        ).first()
+
+        if not prof:
+            senha_prof_criptografada = generate_password_hash('123456')
+
+            novo_prof = Usuario(
+                nome='Prof. Carlos Silva',
+                email='professor@ipjardim.com',
+                telefone='(83) 98888-7777',
+                senha_hash=senha_prof_criptografada,
+                is_admin=False,
+                is_professor=True
+            )
+
+            db.session.add(novo_prof)
+
+        db.session.commit()
+
+        print("Contas de teste prontas!")
+
+    except Exception as e:
+        db.session.rollback()
+        print("Erro ao criar contas de teste:", repr(e))
+
+def configurar_sqlite():
+    """
+    Configura o SQLite uma única vez durante a inicialização.
+    Não usa SQLAlchemy para evitar executar PRAGMA a cada conexão.
+    """
+
+    if not database_url.startswith('sqlite'):
+        return
+
+    # O Flask-SQLAlchemy coloca bancos SQLite relativos
+    # dentro da pasta instance/.
+    db_path = os.path.join(
+        app.instance_path,
+        'banco.db'
+    )
+
+    os.makedirs(
+        app.instance_path,
+        exist_ok=True
+    )
+
+    print("=" * 60)
+    print("BANCO SQLITE:")
+    print(db_path)
+    print("=" * 60)
+
+    connection = None
+
+    try:
+        connection = sqlite3.connect(
+            db_path,
+            timeout=60
+        )
+
+        cursor = connection.cursor()
+
+        cursor.execute(
+            "PRAGMA busy_timeout=60000"
+        )
+
+        cursor.execute(
+            "PRAGMA journal_mode=WAL"
+        )
+
+        cursor.execute(
+            "PRAGMA synchronous=NORMAL"
+        )
+
+        connection.commit()
+
+        cursor.close()
+
+        print("SQLite configurado com sucesso.")
+        print("Modo WAL ativado.")
+
+    except sqlite3.OperationalError as e:
+
+        print("=" * 60)
+        print("ERRO AO CONFIGURAR SQLITE")
+        print(repr(e))
+        print("=" * 60)
+
+        raise
+
+    finally:
+
+        if connection:
+            connection.close()
 if __name__ == '__main__':
+
     with app.app_context():
+
+        # Configura o SQLite uma única vez
+        configurar_sqlite()
+
+        # Cria as tabelas
         db.create_all()
-        criar_usuario_teste()
-    app.run(host='0.0.0.0', port=5000)
+
+        # Cria usuários de teste
+        try:
+            criar_usuario_teste()
+
+        except Exception as e:
+            db.session.rollback()
+
+            print(
+                "Erro ao criar contas de teste:",
+                repr(e)
+            )
+
+    app.run(
+        host='0.0.0.0',
+        port=5000,
+        debug=True,
+        use_reloader=False,
+        threaded=True
+    )
