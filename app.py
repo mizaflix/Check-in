@@ -1205,48 +1205,116 @@ def gerar_escala():
 @app.route('/admin/excluir_mes/<path:mes>')
 @login_required
 def excluir_mes(mes):
+
     if not getattr(current_user, 'is_admin', False):
         return redirect(url_for('dashboard'))
-    
-    # Apaga todas as turmas daquele mês de uma vez
-    Turma.query.filter_by(dia_aula=mes).delete()
-    db.session.commit()
-    flash(f'Toda a escala de "{mes}" foi apagada com sucesso.', 'success')
+
+    try:
+
+        # Busca todas as turmas desse mês
+        turmas = Turma.query.filter_by(
+            dia_aula=mes
+        ).all()
+
+        if not turmas:
+            flash(
+                f'Nenhuma escala encontrada para "{mes}".',
+                'warning'
+            )
+            return redirect(url_for('admin_escala'))
+
+        # Guarda os IDs das turmas
+        turma_ids = [turma.id for turma in turmas]
+
+        # Remove a referência dos check-ins
+        # antes de apagar as turmas.
+        Checkin.query.filter(
+            Checkin.turma_id.in_(turma_ids)
+        ).update(
+            {
+                Checkin.turma_id: None
+            },
+            synchronize_session=False
+        )
+
+        # Agora podemos apagar as turmas
+        Turma.query.filter(
+            Turma.id.in_(turma_ids)
+        ).delete(
+            synchronize_session=False
+        )
+
+        db.session.commit()
+
+        flash(
+            f'Toda a escala de "{mes}" foi apagada com sucesso.',
+            'success'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print("=" * 60)
+        print("ERRO AO EXCLUIR MÊS")
+        print("Mês:", mes)
+        print("Erro:", repr(e))
+        print("=" * 60)
+
+        flash(
+            'Não foi possível excluir a escala deste mês.',
+            'danger'
+        )
+
     return redirect(url_for('admin_escala'))
 
 @app.route('/admin/excluir_turma/<int:turma_id>')
 @login_required
 def excluir_turma(turma_id):
-    if not getattr(current_user, 'is_admin', False):
-        return redirect(url_for('dashboard'))
-    
-    turma = Turma.query.get_or_404(turma_id)
-    db.session.delete(turma)
-    db.session.commit()
-    flash('Aula específica excluída.', 'success')
-    return redirect(url_for('admin_escala'))
 
-@app.route('/admin/editar_turma/<int:turma_id>', methods=['GET', 'POST'])
-@login_required
-def editar_turma(turma_id):
     if not getattr(current_user, 'is_admin', False):
         return redirect(url_for('dashboard'))
-    
-    turma = Turma.query.get_or_404(turma_id)
-    professores = Usuario.query.filter_by(is_professor=True).all()
-    
-    if request.method == 'POST':
-        prof_id = request.form.get('professor_id')
-        aux_id = request.form.get('auxiliar_id')
-        
-        turma.professor_id = prof_id if prof_id else None
-        turma.auxiliar_id = aux_id if aux_id else None
-        
+
+    try:
+
+        turma = Turma.query.get_or_404(turma_id)
+
+        # Remove a referência dos check-ins
+        Checkin.query.filter_by(
+            turma_id=turma.id
+        ).update(
+            {
+                Checkin.turma_id: None
+            },
+            synchronize_session=False
+        )
+
+        # Agora pode apagar a turma
+        db.session.delete(turma)
+
         db.session.commit()
-        flash('Escala atualizada com sucesso!', 'success')
-        return redirect(url_for('admin_escala'))
-        
-    return render_template('editar_turma.html', turma=turma, professores=professores)
+
+        flash(
+            'Aula específica excluída.',
+            'success'
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        print("=" * 60)
+        print("ERRO AO EXCLUIR TURMA")
+        print("Turma:", turma_id)
+        print("Erro:", repr(e))
+        print("=" * 60)
+
+        flash(
+            'Não foi possível excluir a aula.',
+            'danger'
+        )
+
+    return redirect(url_for('admin_escala'))
 
 # Atualize também a rota admin_escala para listar os meses criados:
 @app.route('/admin-escala')
