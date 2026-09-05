@@ -1205,39 +1205,27 @@ def gerar_escala():
 @app.route('/admin/excluir_mes/<path:mes>')
 @login_required
 def excluir_mes(mes):
-
     if not getattr(current_user, 'is_admin', False):
         return redirect(url_for('dashboard'))
 
     try:
-
-        # Busca todas as turmas desse mês
-        turmas = Turma.query.filter_by(
-            dia_aula=mes
-        ).all()
+        turmas = Turma.query.filter_by(dia_aula=mes).all()
 
         if not turmas:
-            flash(
-                f'Nenhuma escala encontrada para "{mes}".',
-                'warning'
-            )
+            flash(f'Nenhuma escala encontrada para "{mes}".', 'warning')
             return redirect(url_for('admin_escala'))
 
-        # Guarda os IDs das turmas
         turma_ids = [turma.id for turma in turmas]
 
-        # Remove a referência dos check-ins
-        # antes de apagar as turmas.
+        # Checkins mantêm o histórico, mas deixam de apontar para uma turma
+        # que será removida. Isso evita violação de chave estrangeira no PostgreSQL.
         Checkin.query.filter(
             Checkin.turma_id.in_(turma_ids)
         ).update(
-            {
-                Checkin.turma_id: None
-            },
+            {Checkin.turma_id: None},
             synchronize_session=False
         )
 
-        # Agora podemos apagar as turmas
         Turma.query.filter(
             Turma.id.in_(turma_ids)
         ).delete(
@@ -1252,140 +1240,91 @@ def excluir_mes(mes):
         )
 
     except Exception as e:
-
         db.session.rollback()
-
-        print("=" * 60)
-        print("ERRO AO EXCLUIR MÊS")
-        print("Mês:", mes)
-        print("Erro:", repr(e))
-        print("=" * 60)
-
-        flash(
-            'Não foi possível excluir a escala deste mês.',
-            'danger'
-        )
+        import traceback
+        print('=' * 60)
+        print('ERRO AO EXCLUIR MÊS')
+        print('Mês:', mes)
+        print('Erro:', repr(e))
+        traceback.print_exc()
+        print('=' * 60)
+        flash('Não foi possível excluir a escala deste mês. Verifique os logs.', 'danger')
 
     return redirect(url_for('admin_escala'))
 
 @app.route('/admin/excluir_turma/<int:turma_id>')
 @login_required
 def excluir_turma(turma_id):
-
     if not getattr(current_user, 'is_admin', False):
         return redirect(url_for('dashboard'))
 
     try:
-
         turma = Turma.query.get_or_404(turma_id)
 
-        # Remove a referência dos check-ins
         Checkin.query.filter_by(
             turma_id=turma.id
         ).update(
-            {
-                Checkin.turma_id: None
-            },
+            {Checkin.turma_id: None},
             synchronize_session=False
         )
 
-        # Agora pode apagar a turma
         db.session.delete(turma)
-
         db.session.commit()
-
-        flash(
-            'Aula específica excluída.',
-            'success'
-        )
+        flash('Aula específica excluída.', 'success')
 
     except Exception as e:
-
         db.session.rollback()
-
-        print("=" * 60)
-        print("ERRO AO EXCLUIR TURMA")
-        print("Turma:", turma_id)
-        print("Erro:", repr(e))
-        print("=" * 60)
-
-        flash(
-            'Não foi possível excluir a aula.',
-            'danger'
-        )
+        import traceback
+        print('=' * 60)
+        print('ERRO AO EXCLUIR TURMA')
+        print('Turma:', turma_id)
+        print('Erro:', repr(e))
+        traceback.print_exc()
+        print('=' * 60)
+        flash('Não foi possível excluir a aula. Verifique os logs.', 'danger')
 
     return redirect(url_for('admin_escala'))
 
+@app.route('/admin/editar_turma/<int:turma_id>', methods=['GET', 'POST'], endpoint='editar_turma')
+@login_required
+def editar_turma(turma_id):
+    if not getattr(current_user, 'is_admin', False):
+        return redirect(url_for('dashboard'))
+    
+    turma = Turma.query.get_or_404(turma_id)
+    professores = Usuario.query.filter_by(is_professor=True).all()
+    
+    if request.method == 'POST':
+        prof_id = request.form.get('professor_id')
+        aux_id = request.form.get('auxiliar_id')
+        
+        turma.professor_id = prof_id if prof_id else None
+        turma.auxiliar_id = aux_id if aux_id else None
+        
+        db.session.commit()
+        flash('Escala atualizada com sucesso!', 'success')
+        return redirect(url_for('admin_escala'))
+        
+    return render_template('editar_turma.html', turma=turma, professores=professores)
+
+# Atualize também a rota admin_escala para listar os meses criados:
 @app.route('/admin-escala')
 @login_required
 def admin_escala():
     if not getattr(current_user, 'is_admin', False):
         return redirect(url_for('dashboard'))
-
-    try:
-        print("=" * 60)
-        print("ACESSANDO /admin-escala")
-        print("=" * 60)
-
-        # Busca as turmas da escala
-        todas_turmas = (
-            Turma.query
-            .order_by(
-                Turma.dia_aula.asc(),
-                Turma.numeracao_escala.asc(),
-                Turma.nome_classe.asc()
-            )
-            .all()
-        )
-
-        print(f"Turmas encontradas: {len(todas_turmas)}")
-
-        # Busca os usuários
-        usuarios = {
-            usuario.id: usuario.nome
-            for usuario in Usuario.query.all()
-        }
-
-        print(f"Usuários encontrados: {len(usuarios)}")
-
-        # Monta a lista de meses sem repetição
-        meses_unicos = []
-
-        for turma in todas_turmas:
-            if turma.dia_aula and turma.dia_aula not in meses_unicos:
-                meses_unicos.append(turma.dia_aula)
-
-        print(f"Meses encontrados: {meses_unicos}")
-
-        print("Renderizando admin_escala.html")
-
-        return render_template(
-            'admin_escala.html',
-            turmas=todas_turmas,
-            usuarios=usuarios,
-            meses=meses_unicos
-        )
-
-    except Exception as e:
-
-        db.session.rollback()
-
-        import traceback
-
-        print("=" * 60)
-        print("ERRO AO ABRIR /admin-escala")
-        print("=" * 60)
-        print("ERRO:", repr(e))
-        traceback.print_exc()
-        print("=" * 60)
-
-        flash(
-            'Não foi possível carregar a escala. '
-            'Verifique os dados da escala ou os logs do servidor.',
-            'danger'
-        )
-
-        return redirect(url_for('admin_dashboard'))
+    
+    # Ordena pelo mês, depois pela semana, depois pela classe
+    todas_turmas = Turma.query.order_by(Turma.dia_aula, Turma.numeracao_escala, Turma.nome_classe).all()
+    usuarios = {u.id: u.nome for u in Usuario.query.all()}
+    
+    # Extrai uma lista só com os nomes dos meses que existem no banco (sem repetir)
+    meses_unicos = []
+    for t in todas_turmas:
+        if t.dia_aula not in meses_unicos:
+            meses_unicos.append(t.dia_aula)
+            
+    return render_template('admin_escala.html', turmas=todas_turmas, usuarios=usuarios, meses=meses_unicos)
 
 # ==========================================
 # NOVA TELA DE PERFIL/CONFIGURAÇÕES (BASEADA NA IMAGEM)

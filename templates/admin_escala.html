@@ -73,7 +73,7 @@
                     <td>{{ usuarios.get(turma.professor_id, 'Sem professor') }}</td>
                     <td>{{ usuarios.get(turma.auxiliar_id, 'Sem auxiliar') }}</td>
                     <td>
-                        <a href="{{ url_for('editar_turma', turma_id=turma.id) }}" class="btn btn-edit" title="Editar Escala">
+                        <a href="/admin/editar_turma/{{ turma.id }}" class="btn btn-edit" title="Editar Escala">
                             <i class="fa-solid fa-pen"></i>
                         </a>
                         <a href="{{ url_for('excluir_turma', turma_id=turma.id) }}" class="btn btn-danger" title="Excluir Aula" onclick="return confirm('Deseja excluir esta aula específica?')">
