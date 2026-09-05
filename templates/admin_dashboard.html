@@ -3,103 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel da Diretoria - CheckKids</title>
+    <title>Painel Admin - CheckKids</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Nunito', sans-serif; background: #f4f7f6; margin: 0; padding: 0; color: #333; }
-        .sidebar { width: 250px; background: #028c6a; color: white; position: fixed; height: 100vh; padding: 20px; }
-        .sidebar h2 { font-weight: 800; font-size: 1.5rem; margin-bottom: 40px; }
-        .sidebar a { color: white; text-decoration: none; display: block; padding: 10px 0; font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; }
+        /* RESET E LAYOUT GERAL */
+        body { margin: 0; font-family: 'Nunito', sans-serif; background: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
         
-        .main-content { margin-left: 250px; padding: 40px; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); margin-bottom: 30px; }
-        h3 { color: #028c6a; font-size: 1.4rem; font-weight: 800; margin-top: 0; }
+        /* MENU LATERAL (ESQUERDA) */
+        .sidebar { width: 260px; background: #ffffff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; padding: 20px 0; }
+        .brand { font-size: 1.6rem; font-weight: 800; color: #028c6a; text-align: center; margin-bottom: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .menu li a { display: flex; align-items: center; gap: 12px; padding: 15px 25px; color: #555; text-decoration: none; font-weight: 700; transition: 0.2s; font-size: 1.05rem; }
+        .menu li a:hover, .menu li a.active { background: #e8f5e9; color: #028c6a; border-right: 5px solid #028c6a; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #edf2f0; }
-        th { background-color: #f8f9fa; color: #555; font-weight: 700; }
+        /* ÁREA PRINCIPAL */
+        .main-content { flex-grow: 1; padding: 30px 40px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header h1 { margin: 0; font-size: 1.8rem; color: #333; }
+        .user-profile { font-weight: 700; color: #028c6a; }
+
+        /* CARTÕES (CARDS) */
+        .card { background: #fff; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 25px; }
+        .card-header { margin-bottom: 20px; }
+        .card-header h3 { margin: 0; color: #028c6a; font-size: 1.3rem; display: flex; align-items: center; gap: 8px; }
+        .card-header p { margin: 5px 0 0 0; color: #777; font-size: 0.95rem; }
+
+        /* GERADOR DE ESCALAS (PASSO A PASSO) */
+        .steps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .step-box { background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 20px; border-left: 5px solid #028c6a; }
+        .step-box.red-step { border-left-color: #f44336; }
         
-        .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
-        .badge-liberado { background: #d1e7dd; color: #0f5132; }
-        .badge-bloqueado { background: #fce8e6; color: #c92a2a; }
-        
-        .btn-action { text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: white; display: inline-block; }
-        .btn-green { background: #028c6a; }
-        .btn-red { background: #dc3545; }
+        /* BOTÕES MODERNOS */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; cursor: pointer; border: none; font-size: 0.95rem; transition: 0.2s; }
+        .btn-red { background: #fdecea; color: #d32f2f; }
+        .btn-red:hover { background: #f8d7da; }
+        .btn-green { background: #028c6a; color: white; }
+        .btn-green:hover { background: #016b51; }
+        .btn-outline { background: #e8f5e9; color: #028c6a; }
+
+        /* TABELA DE PROFESSORES */
+        .modern-table { width: 100%; border-collapse: collapse; }
+        .modern-table th { background: #f8f9fa; color: #555; font-weight: 800; text-align: left; padding: 15px; border-bottom: 2px solid #eee; }
+        .modern-table td { padding: 15px; border-bottom: 1px solid #eee; color: #444; font-weight: 600; }
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; }
+        .badge-green { background: #e8f5e9; color: #2e7d32; }
+        .badge-red { background: #fdecea; color: #d32f2f; }
+
+        /* ALERTAS / MENSAGENS */
+        .alert { padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-weight: 700; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     </style>
 </head>
 <body>
 
+    <!-- MENU LATERAL -->
     <div class="sidebar">
-        <h2><i class="fa-solid fa-leaf"></i> CheckKids</h2>
-        <a href="#professores"><i class="fa-solid fa-chalkboard-user"></i> Equipe / Escalas</a>
-        <a href="#criancas"><i class="fa-solid fa-children"></i> Crianças</a>
-        <a href="#turmas"><i class="fa-solid fa-school"></i> Salas e Turmas</a>
-        <a href="{{ url_for('logout') }}" style="position: absolute; bottom: 20px;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</a>
+        <div class="brand">
+            <i class="fa-solid fa-leaf"></i> CheckKids
+        </div>
+        <ul class="menu">
+            <li><a href="{{ url_for('admin_dashboard') }}" class="active"><i class="fa-solid fa-chart-pie"></i> Início</a></li>
+            <li><a href="{{ url_for('admin_escala') }}"><i class="fa-solid fa-calendar-alt"></i> Ver Escala Geral</a></li>
+            <li style="margin-top: auto;"><a href="{{ url_for('logout') }}"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair do Sistema</a></li>
+        </ul>
     </div>
 
+    <!-- ÁREA PRINCIPAL DO ADMIN -->
     <div class="main-content">
-        <h1>Painel Geral da Diretoria (Admin)</h1>
-        <p style="color: #666; margin-bottom: 40px;">Controle total de professores, alunos e escalas.</p>
+        <div class="header">
+            <h1>Painel Administrativo</h1>
+            <div class="user-profile">Olá, Administrador</div>
+        </div>
 
-        <div id="professores" class="card">
-            <h3>Gestão de Professores e Auxiliares</h3>
-            <p>Controle quem pode preencher a disponibilidade para o próximo mês no aplicativo.</p>
+        <!-- MENSAGENS DO SISTEMA -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- GERADOR INTELIGENTE -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-wand-magic-sparkles"></i> Gerador Automático de Escalas</h3>
+                <p>O algoritmo distribuirá as turmas balanceando as aulas entre professores e auxiliares.</p>
+            </div>
             
-            <table>
-                <tr>
-                    <th>Nome do Professor</th>
-                    <th>Função</th>
-                    <th>Classes Desejadas</th>
-                    <th>Status da Escala</th>
-                    <th>Ação</th>
-                </tr>
-                {% for prof in professores %}
-                <tr>
-                    <td>{{ prof.nome }}</td>
-                    <td>{{ prof.funcao_papeis.capitalize() if prof.funcao_papeis else "Não definida" }}</td>
-                    <td>{{ prof.classes_preferidas if prof.classes_preferidas else "Não definida" }}</td>
-                    <td>
-                        {% if prof.pode_editar_escala %}
-                            <span class="badge badge-liberado">Liberado p/ Preencher</span>
-                        {% else %}
-                            <span class="badge badge-bloqueado">Bloqueado</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if prof.pode_editar_escala %}
-                            <a href="{{ url_for('toggle_escala', prof_id=prof.id) }}" class="btn-action btn-red">Bloquear</a>
-                        {% else %}
-                            <a href="{{ url_for('toggle_escala', prof_id=prof.id) }}" class="btn-action btn-green">Liberar Acesso</a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
+            <div class="steps-grid">
+                <!-- PASSO 1 -->
+                <div class="step-box red-step">
+                    <h4 style="margin-top: 0; color: #d32f2f;">Passo 1: Travar Edições</h4>
+                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Bloqueie a edição de todos os professores para gerar a escala sem conflitos.</p>
+                    <a href="{{ url_for('bloquear_todas_escalas') }}" class="btn btn-red" style="width: 100%; box-sizing: border-box;">
+                        <i class="fa-solid fa-lock"></i> Bloquear Todos
+                    </a>
+                </div>
+
+                <!-- PASSO 2 -->
+                <div class="step-box">
+                    <h4 style="margin-top: 0; color: #028c6a;">Passo 2: Gerar Distribuição</h4>
+                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Selecione o mês de referência e gere a escala automática. As semanas serão exibidas com a data exata do domingo.</p>
+                    <form action="{{ url_for('gerar_escala') }}" method="POST" style="display: flex; gap: 10px;">
+                        <input type="month" name="mes_referencia" value="{{ mes_padrao }}" required style="padding: 10px; border-radius: 8px; border: 1px solid #ccc; flex-grow: 1; font-family: 'Nunito'; font-weight: bold;">
+                        <button type="submit" class="btn btn-green">
+                            <i class="fa-solid fa-play"></i> Gerar
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
 
-        <div id="criancas" class="card">
-            <h3>Banco de Crianças Registradas</h3>
-            <table>
-                <tr>
-                    <th>Nome da Criança</th>
-                    <th>Idade/Data Nasc.</th>
-                    <th>Responsável</th>
-                    <th>Restrições Médicas</th>
-                </tr>
-                {% for crianca in criancas %}
-                <tr>
-                    <td>{{ crianca.nome }}</td>
-                    <td>{{ crianca.data_nascimento }}</td>
-                    <td>Pai/Mãe ID: {{ crianca.responsavel_id }}</td>
-                    <td style="color: #c92a2a; font-weight: bold;">{{ crianca.alergias_condicoes }}</td>
-                </tr>
-                {% endfor %}
+        <!-- TABELA DE PROFESSORES -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fa-solid fa-users-gear"></i> Gestão de Professores</h3>
+                <p>Controle manual para abrir exceções e liberar professores específicos.</p>
+            </div>
+            
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Função</th>
+                        <th>Status da Escala</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prof in professores %}
+                    <tr>
+                        <td>{{ prof.nome }}</td>
+                        <td>{{ prof.funcao_papeis.capitalize() if prof.funcao_papeis else "Não definida" }}</td>
+                        <td>
+                            {% if prof.pode_editar_escala %}
+                                <span class="badge badge-green">Liberado</span>
+                            {% else %}
+                                <span class="badge badge-red">Bloqueado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if prof.pode_editar_escala %}
+                                <a href="{{ url_for('toggle_escala', prof_id=prof.id) }}" class="btn btn-red" style="padding: 6px 12px; font-size: 0.8rem;">Bloquear</a>
+                            {% else %}
+                                <a href="{{ url_for('toggle_escala', prof_id=prof.id) }}" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.8rem;">Liberar Acesso</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
             </table>
         </div>
-
     </div>
-
 </body>
 </html>

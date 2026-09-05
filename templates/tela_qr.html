@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Check-in - CheckKids</title>
+    <title>QR Code {{ 'Check-out' if modo == 'checkout' else 'Check-in' }} - CheckKids</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -34,22 +34,36 @@
     <div class="app-container">
         <div class="nav-top">
             <a href="{{ url_for('dashboard_professor') }}"><i class="fa-solid fa-arrow-left"></i></a>
-            <h1>{{ turma.nome_classe }}</h1>
+            <h1>{{ turma.nome_classe }} - {{ 'Check-out' if modo == 'checkout' else 'Check-in' }}</h1>
             <a href="{{ url_for('notificacoes') }}"><i class="fa-regular fa-bell"></i></a>
         </div>
 
         <div class="status-banner">
-            <i class="fa-regular fa-circle-check"></i> {{ qtd_presentes }} Crianças já entraram na classe
+            {% if modo == 'checkout' %}
+                <i class="fa-solid fa-right-from-bracket"></i> {{ qtd_presentes }} Crianças ainda estão presentes
+            {% else %}
+                <i class="fa-regular fa-circle-check"></i> {{ qtd_presentes }} Crianças já entraram na classe
+            {% endif %}
         </div>
 
         <div class="qr-container">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=checkkids_turma_{{ turma.id }}" alt="QR Code da Turma" class="qr-image">
         </div>
         
-        <p class="qr-hint">Posicione a câmera no código acima</p>
+        <p class="qr-hint">
+            {% if modo == 'checkout' %}
+                Peça aos responsáveis para apontarem a câmera para o código acima e realizarem o check-out.
+            {% else %}
+                Posicione a câmera no código acima para realizar o check-in.
+            {% endif %}
+        </p>
 
         <div class="footer-action-container">
-            <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='iniciar_aula') }}" class="btn-main-action">Finalizar Check-in</a>
+            {% if modo == 'checkout' %}
+                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='finalizar_checkout') }}" class="btn-main-action">Concluir Check-out</a>
+            {% else %}
+                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='iniciar_aula') }}" class="btn-main-action">Finalizar Check-in</a>
+            {% endif %}
             
             <a href="{{ url_for('lista_presenca', turma_id=turma.id) }}" class="btn-secondary-action">Lista de presentes</a>
         </div>

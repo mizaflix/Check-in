@@ -42,7 +42,7 @@
 <body>
     <div class="app-container">
         <div class="nav-top">
-            <a href="javascript:history.back()"><i class="fa-solid fa-arrow-left"></i></a>
+            <a href="{{ url_for('dashboard_professor') }}"><i class="fa-solid fa-arrow-left"></i></a>
             <h1>{{ turma.nome_classe }}</h1>
         </div>
 
@@ -50,23 +50,44 @@
             {% if messages %}
                 {% for category, message in messages %}
                     <div class="flash-msg">{{ message }}</div>
-                 Maroon {% endfor %}
-            Maroon {% endif %}
+                {% endfor %}
+            {% endif %}
         {% endwith %}
 
         <div class="header-status">
-            <i class="fa-regular fa-circle-check"></i> {{ checkins|length }} Crianças na classe
+            {% if turma.status == 'finalizada' %}
+                <i class="fa-solid fa-circle-check"></i> Turma concluída · {{ total_checkins }} check-in(s) registrado(s)
+            {% else %}
+                <i class="fa-regular fa-circle-check"></i> {{ qtd_presentes }} Crianças presentes · {{ total_checkins }} registro(s) no total
+            {% endif %}
         </div>
 
-        <div class="list-title">Alunos Cadastrados na Turma</div>
+        <div class="list-title">{{ 'Histórico de presença' if turma.status == 'finalizada' else 'Lista de presença' }}</div>
 
         {% if checkins %}
             {% for c in checkins %}
             <div class="student-card">
                 <div class="student-header">
                     <div class="student-profile">
-                        <img src="{{ url_for('static', filename='uploads/' + c.crianca.foto_url) }}" alt="Avatar" class="student-avatar">
-                        <div class="student-name">{{ c.crianca.nome }}</div>
+                        {% if c.crianca.foto_url and c.crianca.foto_url != 'default.png' %}
+                            <img src="{{ url_for('static', filename='uploads/' + c.crianca.foto_url) }}" alt="Avatar" class="student-avatar">
+                        {% else %}
+                            <div class="student-avatar" style="display:flex;align-items:center;justify-content:center;color:#028c6a;font-size:1.25rem;">
+                                <i class="fa-solid fa-child"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <div class="student-name">{{ c.crianca.nome }}</div>
+                            {% if c.data_hora_saida %}
+                                <span style="display: inline-block; margin-top: 3px; font-size: 0.7rem; color: #6c757d; font-weight: 800;">
+                                    <i class="fa-solid fa-circle-check"></i> Check-out realizado
+                                </span>
+                            {% else %}
+                                <span style="display: inline-block; margin-top: 3px; font-size: 0.7rem; color: #028c6a; font-weight: 800;">
+                                    <i class="fa-solid fa-person-circle-check"></i> Presente
+                                </span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
@@ -81,13 +102,15 @@
                 {% endif %}
 
                 <div class="card-actions">
-                    <a href="{{ url_for('detalhes_crianca', crianca_id=c.crianca.id) }}" class="btn-action btn-view">Ver Perfil</a>
+                    <a href="{{ url_for('detalhes_crianca', crianca_id=c.crianca.id, turma_id=turma.id) }}" class="btn-action btn-view">Ver Perfil</a>
                     
-                    <form action="{{ url_for('chamar_responsavel', crianca_id=c.crianca.id, turma_id=turma.id) }}" method="POST" style="flex: 1; margin: 0;">
-                        <button type="submit" class="btn-action btn-call" style="width: 100%; border: none;">
-                            <i class="fa-solid fa-bell"></i> Chamar Responsável
-                        </button>
-                    </form>
+                    {% if not c.data_hora_saida %}
+                        <form action="{{ url_for('chamar_responsavel', crianca_id=c.crianca.id, turma_id=turma.id) }}" method="POST" style="flex: 1; margin: 0;">
+                            <button type="submit" class="btn-action btn-call" style="width: 100%; border: none;">
+                                <i class="fa-solid fa-bell"></i> Chamar Responsável
+                            </button>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

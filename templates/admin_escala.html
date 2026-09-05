@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Escala Geral - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Nunito', sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        h2 { color: #028c6a; text-align: center; font-weight: 800; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.9rem; cursor: pointer; border: none; }
+        .btn-voltar { background: #6c757d; color: white; margin-bottom: 20px; }
+        .btn-danger { background: #fdecea; color: #d32f2f; }
+        .btn-danger:hover { background: #f8d7da; }
+        .btn-edit { background: #e8f5e9; color: #028c6a; }
+        
+        /* Alertas */
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 20px; font-weight: 700; text-align: center; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        
+        /* Controles de Limpeza */
+        .cleanup-box { background: #fff3f3; border: 1px solid #ffcdd2; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .cleanup-box span { font-weight: 800; color: #d32f2f; margin-right: 10px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #028c6a; color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        tr:hover { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-voltar"><i class="fa-solid fa-arrow-left"></i> Voltar ao Painel</a>
+        <h2>Gestão da Escala Geral</h2>
+        
+        <!-- Mensagens de Sucesso -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Botões Rápidos para Limpar Meses Duplicados -->
+        {% if meses %}
+        <div class="cleanup-box">
+            <span><i class="fa-solid fa-trash-can"></i> Apagar mês completo:</span>
+            {% for mes in meses %}
+                <a href="{{ url_for('excluir_mes', mes=mes) }}" class="btn btn-danger" onclick="return confirm('Tem certeza? Isso apagará TODAS as aulas de {{ mes }}.')">
+                    Apagar {{ mes }}
+                </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Mês/Semana</th>
+                    <th>Classe</th>
+                    <th>Professor Titular</th>
+                    <th>Auxiliar</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for turma in turmas %}
+                <tr>
+                    <td><strong>{{ turma.dia_aula }}</strong> <br> <small>{{ turma.numeracao_escala }}</small></td>
+                    <td>Sala de {{ turma.nome_classe }}</td>
+                    <td>{{ usuarios.get(turma.professor_id, 'Sem professor') }}</td>
+                    <td>{{ usuarios.get(turma.auxiliar_id, 'Sem auxiliar') }}</td>
+                    <td>
+                        <a href="{{ url_for('editar_turma', turma_id=turma.id) }}" class="btn btn-edit" title="Editar Escala">
+                            <i class="fa-solid fa-pen"></i>
+                        </a>
+                        <a href="{{ url_for('excluir_turma', turma_id=turma.id) }}" class="btn btn-danger" title="Excluir Aula" onclick="return confirm('Deseja excluir esta aula específica?')">
+                            <i class="fa-solid fa-xmark"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #777;">Nenhuma escala gerada no momento. Vá no painel e clique em Gerar.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

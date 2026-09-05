@@ -89,6 +89,12 @@
             margin-bottom: 10px;
         }
 
+        .photo-circle { overflow: hidden; position: relative; }
+        .photo-circle img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: none; }
+        .detail-field { display: none; margin: -5px 0 15px 0; }
+        .detail-field textarea { width: 100%; min-height: 70px; resize: vertical; border: 1px solid #d8e5e0; border-radius: 10px; padding: 11px 13px; font: inherit; box-sizing: border-box; outline: none; }
+        .detail-field textarea:focus { border-color: #008f68; }
+
         .photo-warning {
             background-color: #ffeaea;
             color: #d9534f;
@@ -188,7 +194,8 @@
             
             <div class="photo-upload-container">
                 <label for="foto" class="photo-circle">
-                    <i class="fa-regular fa-image"></i>
+                    <i class="fa-regular fa-image" id="foto-icon"></i>
+                    <img id="foto-preview" src="" alt="Pré-visualização da foto da criança">
                 </label>
                 <input type="file" id="foto" name="foto" style="display: none;" accept="image/*">
                 
@@ -221,10 +228,16 @@
                 <input type="checkbox" id="restricao_alimentar" name="tem_restricao_alimentar">
                 <label for="restricao_alimentar">Possui alguma restrição alimentar?</label>
             </div>
+            <div class="detail-field" id="restricao-detalhe">
+                <textarea name="restricao_alimentar" id="restricao_texto" placeholder="Ex.: intolerância à lactose, dieta sem açúcar..."></textarea>
+            </div>
 
             <div class="checkbox-group">
-                <input type="checkbox" id="necessidades_especificas" name="tem_necessidade_especifica">
-                <label for="necessidades_especificas">Possui necessidades específicas?</label>
+                <input type="checkbox" id="alergia" name="tem_alergia">
+                <label for="alergia">Possui alguma alergia?</label>
+            </div>
+            <div class="detail-field" id="alergia-detalhe">
+                <textarea name="alergia" id="alergia_texto" placeholder="Ex.: amendoim, leite, medicamento..."></textarea>
             </div>
 
             <button type="submit" class="btn-submit bg-green">Cadastrar</button>
@@ -232,5 +245,36 @@
 
     </div>
 
+    <script>
+        const inputFoto = document.getElementById('foto');
+        const fotoPreview = document.getElementById('foto-preview');
+        const fotoIcon = document.getElementById('foto-icon');
+        const restricaoCheck = document.getElementById('restricao_alimentar');
+        const restricaoDetalhe = document.getElementById('restricao-detalhe');
+        const restricaoTexto = document.getElementById('restricao_texto');
+        const alergiaCheck = document.getElementById('alergia');
+        const alergiaDetalhe = document.getElementById('alergia-detalhe');
+        const alergiaTexto = document.getElementById('alergia_texto');
+
+        inputFoto.addEventListener('change', () => {
+            const arquivo = inputFoto.files && inputFoto.files[0];
+            if (!arquivo) return;
+            const url = URL.createObjectURL(arquivo);
+            fotoPreview.src = url;
+            fotoPreview.style.display = 'block';
+            fotoIcon.style.display = 'none';
+            fotoPreview.onload = () => URL.revokeObjectURL(url);
+        });
+
+        function atualizarCampo(checkbox, container, textarea) {
+            const ativo = checkbox.checked;
+            container.style.display = ativo ? 'block' : 'none';
+            textarea.required = ativo;
+            if (!ativo) textarea.value = '';
+        }
+
+        restricaoCheck.addEventListener('change', () => atualizarCampo(restricaoCheck, restricaoDetalhe, restricaoTexto));
+        alergiaCheck.addEventListener('change', () => atualizarCampo(alergiaCheck, alergiaDetalhe, alergiaTexto));
+    </script>
 </body>
 </html>

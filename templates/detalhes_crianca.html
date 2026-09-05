@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil da Criança - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background: #f4f4f4; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; min-height: 100vh; background: #fff; padding: 24px 20px; }
+        .nav-top { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+        .nav-top a { color: #028c6a; font-size: 1.2rem; text-decoration: none; }
+        .nav-top h1 { color: #028c6a; font-size: 1.25rem; font-weight: 800; }
+        .profile-card { border: 1px solid #edf2f0; border-radius: 20px; padding: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+        .hero { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+        .avatar { width: 78px; height: 78px; border-radius: 50%; object-fit: cover; background: #eef7f4; border: 3px solid #eef7f4; }
+        .name { font-size: 1.25rem; font-weight: 800; color: #222; }
+        .subtitle { margin-top: 4px; color: #8a8a8a; font-size: 0.86rem; }
+        .section { margin-top: 18px; padding-top: 18px; border-top: 1px solid #edf2f0; }
+        .section h2 { font-size: 0.92rem; color: #028c6a; margin-bottom: 10px; font-weight: 800; }
+        .info-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; }
+        .label { color: #888; font-size: 0.82rem; }
+        .value { color: #333; font-size: 0.88rem; font-weight: 700; text-align: right; }
+        .health { margin-top: 18px; padding: 13px; border-radius: 12px; background: #fff8e1; color: #664d03; border-left: 4px solid #ffc107; font-size: 0.84rem; line-height: 1.45; }
+        .health.clean { background: #f8f9fa; color: #6c757d; border-left-color: #ced4da; }
+        .btn-back { display: block; margin-top: 20px; width: 100%; padding: 13px; border-radius: 25px; border: 2px solid #028c6a; color: #028c6a; text-decoration: none; text-align: center; font-weight: 800; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="nav-top">
+            <a href="{% if turma %}{{ url_for('lista_presenca', turma_id=turma.id) }}{% else %}{{ url_for('dashboard') }}{% endif %}">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <h1>Perfil da criança</h1>
+        </div>
+
+        <div class="profile-card">
+            <div class="hero">
+                {% if crianca.foto_url and crianca.foto_url != 'default.png' %}
+                    <img src="{{ url_for('static', filename='uploads/' + crianca.foto_url) }}" alt="Foto de {{ crianca.nome }}" class="avatar">
+                {% else %}
+                    <div class="avatar" style="display:flex;align-items:center;justify-content:center;color:#028c6a;font-size:1.8rem;">
+                        <i class="fa-solid fa-child"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <div class="name">{{ crianca.nome }}</div>
+                    <div class="subtitle">Informações da criança</div>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top:0; padding-top:0; border-top:0;">
+                <h2>Dados pessoais</h2>
+                <div class="info-row"><span class="label">Data de nascimento</span><span class="value">{{ crianca.data_nascimento }}</span></div>
+                <div class="info-row"><span class="label">Sexo</span><span class="value">{{ crianca.sexo }}</span></div>
+            </div>
+
+            <div class="section">
+                <h2>Saúde e cuidados</h2>
+                {% if crianca.alergias_condicoes and crianca.alergias_condicoes != 'Nenhuma' %}
+                    <div class="health"><b>⚠️ Alergias/Condições:</b><br>{{ crianca.alergias_condicoes }}</div>
+                {% else %}
+                    <div class="health clean">✅ Nenhuma restrição médica informada.</div>
+                {% endif %}
+            </div>
+
+            {% if responsavel %}
+            <div class="section">
+                <h2>Responsável</h2>
+                <div class="info-row"><span class="label">Nome</span><span class="value">{{ responsavel.nome }}</span></div>
+                <div class="info-row"><span class="label">Vínculo</span><span class="value">{{ responsavel.vinculo }}</span></div>
+                <div class="info-row"><span class="label">Telefone</span><span class="value">{{ responsavel.telefone }}</span></div>
+            </div>
+            {% endif %}
+        </div>
+
+        <a class="btn-back" href="{% if turma %}{{ url_for('lista_presenca', turma_id=turma.id) }}{% else %}{{ url_for('dashboard') }}{% endif %}">
+            <i class="fa-solid fa-arrow-left"></i> Voltar para a lista
+        </a>
+    </div>
+</body>
+</html>

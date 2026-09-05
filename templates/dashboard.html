@@ -218,14 +218,31 @@
 
     <div class="app-container">
         <header>
-            <i class="fa-solid fa-leaf text-green" style="font-size: 1.5rem;"></i>
+            <a href="{{ url_for('configuracoes') }}" style="text-decoration: none; color: #008f68;">
+                <i class="fa-solid fa-gear" style="font-size: 1.4rem;"></i>
+            </a>
             <h1>Bem-vindos</h1>
-            <i class="fa-regular fa-bell bell-icon"></i>
+            <a href="{{ url_for('notificacoes') }}" class="bell-icon" style="text-decoration:none; position:relative;">
+                <i class="fa-regular fa-bell"></i>
+                {% if qtd_notificacoes %}<span style="position:absolute; top:-10px; right:-10px; min-width:18px; height:18px; padding:0 4px; border-radius:20px; background:#ff7b5a; color:#fff; font-size:.65rem; display:flex; align-items:center; justify-content:center;">{{ qtd_notificacoes }}</span>{% endif %}
+            </a>
         </header>
 
         <div class="hero-section">
             <img src="{{ url_for('static', filename='img/familia.png') }}">
         </div>
+
+        {% if alertas %}
+        <div style="margin-bottom:20px;">
+            {% for alerta in alertas[:3] %}
+            <div style="padding:12px 14px; margin-bottom:8px; background:#fff8e1; border-left:4px solid #ff7b5a; border-radius:12px; font-size:.82rem; color:#5c4b00;">
+                <div style="font-weight:800; margin-bottom:4px;"><i class="fa-solid fa-bell"></i> Nova notificação</div>
+                <div>{{ alerta.mensagem }}</div>
+            </div>
+            {% endfor %}
+            <a href="{{ url_for('notificacoes') }}" style="display:block; text-align:center; color:#008f68; text-decoration:none; font-size:.82rem; font-weight:800; padding:6px;">Ver todas as notificações</a>
+        </div>
+        {% endif %}
 
         <div class="top-actions">
             <a href="#" class="action-chip">
@@ -262,9 +279,6 @@
         </div>
     {% endif %}
     
-    <a href="{{ url_for('configuracoes') }}" style="text-decoration: none; color: #008f68;">
-        <i class="fa-solid fa-gear" style="font-size: 1.4rem;"></i>
-    </a>
 </div>
 
         <br>
@@ -287,7 +301,7 @@
                 
                 <div class="user-info">
                     <p class="user-name">{{ crianca.nome }}</p>
-                    <p class="user-sub">Cadastrado(a)</p>
+                    <p class="user-sub"><a href="{{ url_for('detalhes_crianca', crianca_id=crianca.id) }}" style="color:#008f68; text-decoration:none; font-weight:700;">Ver perfil</a></p>
                 </div>
                 
                 <div class="status-form">

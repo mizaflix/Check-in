@@ -27,25 +27,12 @@
 <body>
     <div class="app-container">
         <header>
-            <a href="javascript:history.back()" class="header-left"><i class="fa-solid fa-arrow-left"></i> Configurações</a>
+            <a href="{% if current_user.is_professor or current_user.is_admin %}{{ url_for('dashboard_professor') }}{% else %}{{ url_for('dashboard') }}{% endif %}" class="header-left"><i class="fa-solid fa-arrow-left"></i> Configurações</a>
             <i class="fa-solid fa-gear" style="color: #028c6a; font-size: 1.4rem;"></i>
         </header>
 
         <div class="menu-list">
             
-            {% if current_user.is_professor %}
-                {% if current_user.pode_editar_escala %}
-                    <a href="{{ url_for('finalizar_cadastro_professor') }}" class="menu-item" style="border: 2px solid #028c6a; background-color: #f4faf8;">
-                        <i class="fa-solid fa-calendar-check"></i> Definir minha escala
-                    </a>
-                {% else %}
-                    <div class="menu-item locked">
-                        <i class="fa-solid fa-lock"></i> Definir minha escala
-                        <span class="badge-locked">Bloqueado</span>
-                    </div>
-                {% endif %}
-            {% endif %}
-
             <a href="{{ url_for('sobre_professores') }}" class="menu-item">
                 <i class="fa-solid fa-chalkboard-user"></i> Sobre os professores
             </a>

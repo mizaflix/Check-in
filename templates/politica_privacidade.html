@@ -39,6 +39,11 @@
 </head>
 <body>
     <div class="app-container">
+        <div style="width: 100%; margin-bottom: 14px; text-align: left;">
+            <a href="{% if modo_cadastro %}{{ url_for('login') }}{% elif current_user.is_authenticated %}{% if current_user.is_professor or current_user.is_admin %}{{ url_for('configuracoes') }}{% else %}{{ url_for('dashboard') }}{% endif %}{% else %}{{ url_for('login') }}{% endif %}" style="color: #008f68; text-decoration: none; font-weight: 700;">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
         <i class="fa-solid fa-leaf logo-icon"></i>
         <h1>Política de privacidade</h1>
 
@@ -59,6 +64,7 @@
             <p>Solicitar acesso, correção ou exclusão.</p>
         </div>
 
+        {% if modo_cadastro %}
         <div class="consent-area">
             <label class="switch">
                 <input type="checkbox" id="concordoCheck" onchange="liberarBotao()">
@@ -67,16 +73,24 @@
             <div class="consent-text">Li e concordo com os termos, condições de uso e política de privacidade</div>
         </div>
 
-        <a href="{{ url_for('cadastro') }}" id="btnContinuar" class="btn-submit btn-disabled">Continuar para Cadastro</a>
+            <a href="{{ url_for('cadastro') }}" id="btnContinuar" class="btn-submit btn-disabled">Continuar para Cadastro</a>
+        {% else %}
+            <a href="{% if current_user.is_authenticated %}{% if current_user.is_professor or current_user.is_admin %}{{ url_for('configuracoes') }}{% else %}{{ url_for('dashboard') }}{% endif %}{% else %}{{ url_for('login') }}{% endif %}" class="btn-submit">Voltar</a>
+        {% endif %}
     </div>
 
+    {% if modo_cadastro %}
     <script>
         function liberarBotao() {
             var checkbox = document.getElementById("concordoCheck");
             var botao = document.getElementById("btnContinuar");
-            if (checkbox.checked) { botao.classList.remove("btn-disabled"); } 
-            else { botao.classList.add("btn-disabled"); }
+            if (checkbox.checked) {
+                botao.classList.remove("btn-disabled");
+            } else {
+                botao.classList.add("btn-disabled");
+            }
         }
     </script>
+    {% endif %}
 </body>
 </html>

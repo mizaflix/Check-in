@@ -38,6 +38,7 @@
             <div class="photo-upload">
                 <div class="photo-circle" id="preview-box" onclick="document.getElementById('input-foto').click();">
                     <i class="fa-regular fa-image" id="icone-foto"></i>
+                    <img id="imagem-preview" src="" alt="Pré-visualização" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:50%;">
                 </div>
                 <input type="file" id="input-foto" name="foto" accept="image/*" style="display: none;" onchange="mostrarPreview(event)">
                 
@@ -74,9 +75,10 @@
                     var previewBox = document.getElementById('preview-box');
                     var icone = document.getElementById('icone-foto');
                     
-                    previewBox.style.backgroundImage = 'url(' + e.target.result + ')';
-                    icone.style.display = 'none'; // Esconde o ícone de imagem
-                }
+                    var img = document.getElementById('imagem-preview');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    icone.style.display = 'none';                }
                 reader.readAsDataURL(input.files[0]);
             }
         }

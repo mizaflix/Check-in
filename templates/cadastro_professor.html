@@ -7,73 +7,107 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #f4f7f6; display: flex; justify-content: center; font-family: 'Nunito', sans-serif; margin: 0; }
-        .app-container { width: 100%; max-width: 414px; padding: 24px 20px; background: #ffffff; min-height: 100vh; box-sizing: border-box; }
-        
-        .header-title { color: #028c6a; font-size: 1.4rem; font-weight: 800; text-align: center; margin-bottom: 8px; }
-        .subtitle { color: #6c757d; font-size: 0.95rem; text-align: center; margin-bottom: 30px; }
-        
-        .form-group { margin-bottom: 22px; }
-        .form-label { display: block; font-weight: 700; color: #333; margin-bottom: 8px; font-size: 0.95rem; }
-        
-        .input-field { width: 100%; padding: 12px 16px; border: 1px solid #ced4da; border-radius: 12px; font-size: 0.95rem; box-sizing: border-box; font-family: inherit; }
-        
-        /* Layout de Opções em Grade / Checkbox */
-        .options-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 5px; }
-        .checkbox-label { display: flex; align-items: center; gap: 10px; background: #f8f9fa; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; border: 1px solid #edf2f0; }
-        .checkbox-label input { width: 18px; height: 18px; accent-color: #028c6a; }
-
-        .btn-submit { background: #028c6a; color: white; border: none; width: 100%; padding: 14px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 12px rgba(2, 140, 106, 0.2); }
+        * { box-sizing: border-box; }
+        body { background:#f4f7f6; display:flex; justify-content:center; margin:0; font-family:'Nunito',sans-serif; color:#26332e; }
+        .app-container { width:100%; max-width:414px; min-height:100vh; padding:22px 20px 30px; background:#fff; }
+        .back { display:inline-flex; gap:8px; align-items:center; color:#028c6a; text-decoration:none; font-weight:800; margin-bottom:18px; }
+        .header-title { color:#028c6a; font-size:1.4rem; font-weight:800; text-align:center; margin:0 0 8px; }
+        .subtitle { color:#6c757d; font-size:.92rem; line-height:1.45; text-align:center; margin:0 0 22px; }
+        .form-group { margin-bottom:20px; }
+        .form-label { display:block; font-weight:800; color:#333; margin-bottom:8px; font-size:.94rem; }
+        .input-field, select { width:100%; padding:12px 14px; border:1px solid #ced4da; border-radius:12px; font-size:.95rem; font-family:inherit; background:#fff; }
+        .helper { color:#7a8580; font-size:.78rem; margin-top:6px; line-height:1.4; }
+        .week-card { border:1px solid #e4eeea; border-radius:14px; padding:14px; margin-bottom:12px; background:#fbfdfc; }
+        .week-title { color:#028c6a; font-size:1rem; font-weight:800; margin-bottom:10px; }
+        .week-title small { color:#8b9691; font-weight:700; font-size:.78rem; margin-left:4px; }
+        .options-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .checkbox-label { display:flex; align-items:center; gap:9px; background:#f4f8f6; padding:11px 10px; border-radius:10px; cursor:pointer; font-weight:700; font-size:.86rem; border:1px solid #e8efec; }
+        .checkbox-label input { width:18px; height:18px; accent-color:#028c6a; flex:none; }
+        .class-options { display:flex; flex-wrap:wrap; gap:8px; }
+        .class-label { display:flex; align-items:center; gap:8px; background:#f8f9fa; padding:11px 12px; border-radius:10px; cursor:pointer; font-weight:700; font-size:.86rem; border:1px solid #edf2f0; }
+        .class-label input { accent-color:#028c6a; width:17px; height:17px; }
+        .btn-submit { background:#028c6a; color:#fff; border:none; width:100%; padding:15px; border-radius:25px; font-size:1rem; font-weight:800; cursor:pointer; margin-top:8px; box-shadow:0 4px 12px rgba(2,140,106,.18); }
+        .month-change { margin-top:10px; display:block; width:100%; padding:10px; border:1px solid #dbe8e3; background:#f7faf8; border-radius:10px; color:#028c6a; font-weight:800; cursor:pointer; font-family:inherit; }
+        .selected-note { margin-bottom:15px; padding:10px 12px; border-radius:10px; background:#eef7f4; color:#286b59; font-size:.8rem; font-weight:700; line-height:1.4; }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <h1 class="header-title">Preencher disponibilidade no mês</h1>
-        <p class="subtitle">O sistema organizará a escala ideal de forma automática e justa.</p>
+<div class="app-container">
+    <a class="back" href="{{ url_for('dashboard_professor') }}"><i class="fa-solid fa-arrow-left"></i> Voltar</a>
+    <h1 class="header-title">Definir minha escala</h1>
+    <p class="subtitle">Informe em quais domingos deste mês você pode atuar. A escala será gerada automaticamente pela administração.</p>
 
-        <form action="{{ url_for('finalizar_cadastro_professor') }}" method="POST">
-            <div class="form-group">
-                <label class="form-label">Seu Nome Completo</label>
-                <input type="text" name="nome" class="input-field" value="{{ current_user.nome }}" required>
-            </div>
+    <form action="{{ url_for('finalizar_cadastro_professor') }}" method="POST" id="escalaForm">
+        <div class="form-group">
+            <label class="form-label" for="mes_escala">Mês da disponibilidade</label>
+            <input class="input-field" type="month" id="mes_escala" name="mes_escala" value="{{ mes_escala }}" required>
+            <div class="helper">Escolha o mês para visualizar os quatro primeiros domingos disponíveis.</div>
+            <button type="button" class="month-change" id="trocarMes">Atualizar mês</button>
+        </div>
 
-            <div class="form-group">
-                <label class="form-label">Telefone / WhatsApp</label>
-                <input type="text" name="telefone" class="input-field" placeholder="(00) 00000-0000" required>
-            </div>
+        <div class="selected-note">
+            Mês selecionado: <strong>{{ mes_label }}</strong>. Marque <strong>Manhã</strong> e/ou <strong>Noite</strong> em cada domingo em que você pode comparecer.
+        </div>
 
-            <div class="form-group">
-                <label class="form-label">Qual a sua função?</label>
-                <select name="funcao_papeis" class="input-field" style="background: #fff;">
-                    <option value="professor">Professor(a)</option>
-                    <option value="auxiliar">Auxiliar</option>
-                    <option value="ambos">Ambos (Professor e Auxiliar)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Em quais classes você prefere atuar?</label>
+        <div class="form-group">
+            <label class="form-label">Dias e turnos disponíveis</label>
+            {% for domingo in datas_semana %}
+            <div class="week-card">
+                <div class="week-title">Semana {{ loop.index }} - {{ domingo.strftime('%d/%m') }} <small>{{ mes_label }}</small></div>
                 <div class="options-grid">
-                    {% for classe in classes_disponiveis %}
                     <label class="checkbox-label">
-                        <input type="checkbox" name="classes_interest" value="{{ classe }}">
-                        Classe {{ classe }} anos
+                        <input type="checkbox" name="disponibilidade_dias" value="{{ domingo.isoformat() }}|Manhã" {% if domingo.isoformat() ~ '|Manhã' in disponibilidades_selecionadas %}checked{% endif %}>
+                        <span>Manhã · EBD</span>
                     </label>
-                    {% endfor %}
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="disponibilidade_dias" value="{{ domingo.isoformat() }}|Noite" {% if domingo.isoformat() ~ '|Noite' in disponibilidades_selecionadas %}checked{% endif %}>
+                        <span>Noite · Culto</span>
+                    </label>
                 </div>
             </div>
+            {% endfor %}
+        </div>
 
-            <div class="form-group">
-                <label class="form-label">Dias da semana com disponibilidade:</label>
-                <div class="options-grid">
-                    <label class="checkbox-label"><input type="checkbox" name="dias_disponiveis" value="Domingo"> Domingo</label>
-                    <label class="checkbox-label"><input type="checkbox" name="dias_disponiveis" value="Sábado"> Sábado</label>
-                    <label class="checkbox-label"><input type="checkbox" name="dias_disponiveis" value="Quarta-feira"> Quarta-feira</label>
-                </div>
+        <div class="form-group">
+            <label class="form-label">Qual a sua função?</label>
+            <select name="funcao_papeis">
+                <option value="professor" {% if funcao_atual == 'professor' %}selected{% endif %}>Professor(a)</option>
+                <option value="auxiliar" {% if funcao_atual == 'auxiliar' %}selected{% endif %}>Auxiliar</option>
+                <option value="ambos" {% if funcao_atual == 'ambos' %}selected{% endif %}>Ambos (Professor e Auxiliar)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Em quais classes você prefere atuar?</label>
+            <div class="class-options">
+                {% for classe in classes_disponiveis %}
+                <label class="class-label">
+                    <input type="checkbox" name="classes_interest" value="{{ classe }}" {% if classe in classes_selecionadas %}checked{% endif %}>
+                    Classe {{ classe }} anos
+                </label>
+                {% endfor %}
             </div>
+        </div>
 
-            <button type="submit" class="btn-submit">Salvar e Enviar Disponibilidade</button>
-        </form>
-    </div>
+        <div class="form-group">
+            <label class="form-label">Telefone / WhatsApp</label>
+            <input type="text" name="telefone" class="input-field" value="{{ telefone_atual }}" placeholder="(00) 00000-0000" required>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Seu nome</label>
+            <input type="text" name="nome" class="input-field" value="{{ current_user.nome }}" required>
+        </div>
+
+        <button type="submit" class="btn-submit"><i class="fa-solid fa-check"></i> Salvar minha disponibilidade</button>
+    </form>
+</div>
+<script>
+    document.getElementById('trocarMes').addEventListener('click', function () {
+        const mes = document.getElementById('mes_escala').value;
+        if (!mes) return;
+        window.location.href = "{{ url_for('finalizar_cadastro_professor') }}?mes=" + encodeURIComponent(mes);
+    });
+</script>
 </body>
 </html>
