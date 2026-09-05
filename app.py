@@ -1316,24 +1316,76 @@ def excluir_turma(turma_id):
 
     return redirect(url_for('admin_escala'))
 
-# Atualize também a rota admin_escala para listar os meses criados:
 @app.route('/admin-escala')
 @login_required
 def admin_escala():
     if not getattr(current_user, 'is_admin', False):
         return redirect(url_for('dashboard'))
-    
-    # Ordena pelo mês, depois pela semana, depois pela classe
-    todas_turmas = Turma.query.order_by(Turma.dia_aula, Turma.numeracao_escala, Turma.nome_classe).all()
-    usuarios = {u.id: u.nome for u in Usuario.query.all()}
-    
-    # Extrai uma lista só com os nomes dos meses que existem no banco (sem repetir)
-    meses_unicos = []
-    for t in todas_turmas:
-        if t.dia_aula not in meses_unicos:
-            meses_unicos.append(t.dia_aula)
-            
-    return render_template('admin_escala.html', turmas=todas_turmas, usuarios=usuarios, meses=meses_unicos)
+
+    try:
+        print("=" * 60)
+        print("ACESSANDO /admin-escala")
+        print("=" * 60)
+
+        # Busca as turmas da escala
+        todas_turmas = (
+            Turma.query
+            .order_by(
+                Turma.dia_aula.asc(),
+                Turma.numeracao_escala.asc(),
+                Turma.nome_classe.asc()
+            )
+            .all()
+        )
+
+        print(f"Turmas encontradas: {len(todas_turmas)}")
+
+        # Busca os usuários
+        usuarios = {
+            usuario.id: usuario.nome
+            for usuario in Usuario.query.all()
+        }
+
+        print(f"Usuários encontrados: {len(usuarios)}")
+
+        # Monta a lista de meses sem repetição
+        meses_unicos = []
+
+        for turma in todas_turmas:
+            if turma.dia_aula and turma.dia_aula not in meses_unicos:
+                meses_unicos.append(turma.dia_aula)
+
+        print(f"Meses encontrados: {meses_unicos}")
+
+        print("Renderizando admin_escala.html")
+
+        return render_template(
+            'admin_escala.html',
+            turmas=todas_turmas,
+            usuarios=usuarios,
+            meses=meses_unicos
+        )
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        import traceback
+
+        print("=" * 60)
+        print("ERRO AO ABRIR /admin-escala")
+        print("=" * 60)
+        print("ERRO:", repr(e))
+        traceback.print_exc()
+        print("=" * 60)
+
+        flash(
+            'Não foi possível carregar a escala. '
+            'Verifique os dados da escala ou os logs do servidor.',
+            'danger'
+        )
+
+        return redirect(url_for('admin_dashboard'))
 
 # ==========================================
 # NOVA TELA DE PERFIL/CONFIGURAÇÕES (BASEADA NA IMAGEM)
