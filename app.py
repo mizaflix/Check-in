@@ -2,6 +2,8 @@ import os
 from datetime import datetime, date, timedelta
 import sqlite3
 import uuid
+import re
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
@@ -14,7 +16,10 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import event
+from sqlalchemy import event, inspect, text
+
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 
 
 app = Flask(__name__)
@@ -68,6 +73,110 @@ MESES_PT = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ]
+
+# ==========================================================
+# TWILIO / WHATSAPP
+# ==========================================================
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '').strip()
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '').strip()
+TWILIO_WHATSAPP_FROM = os.getenv(
+    'TWILIO_WHATSAPP_FROM',
+    'whatsapp:+14155238886'
+).strip()
+TWILIO_WHATSAPP_CONTENT_SID = os.getenv(
+    'TWILIO_WHATSAPP_CONTENT_SID',
+    ''
+).strip()
+
+
+def normalizar_telefone_brasil(telefone):
+    """Converte telefone brasileiro para E.164 (+55XXXXXXXXXXX)."""
+    digitos = re.sub(r'\D', '', telefone or '')
+
+    if digitos.startswith('55') and len(digitos) in (12, 13):
+        return '+' + digitos
+
+    if len(digitos) in (10, 11):
+        return '+55' + digitos
+
+    return None
+
+
+def twilio_configurado():
+    return bool(
+        TWILIO_ACCOUNT_SID
+        and TWILIO_AUTH_TOKEN
+        and TWILIO_WHATSAPP_FROM
+    )
+
+
+def enviar_whatsapp(telefone, nome_crianca, nome_turma):
+    """
+    Envia um alerta para o responsável pelo WhatsApp via Twilio.
+
+    Quando TWILIO_WHATSAPP_CONTENT_SID estiver configurado, a mensagem
+    usa um template aprovado com:
+      {{1}} = nome da criança
+      {{2}} = nome da sala
+
+    Sem Content SID, o envio usa texto livre e é indicado somente para
+    uma sessão WhatsApp já aberta (por exemplo, durante testes).
+    """
+    if not twilio_configurado():
+        return False, 'Twilio não configurado no ambiente.'
+
+    destino = normalizar_telefone_brasil(telefone)
+    if not destino:
+        return False, 'Número de WhatsApp inválido ou ausente.'
+
+    try:
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+        parametros = {
+            'from_': TWILIO_WHATSAPP_FROM,
+            'to': f'whatsapp:{destino}',
+        }
+
+        if TWILIO_WHATSAPP_CONTENT_SID:
+            parametros['content_sid'] = TWILIO_WHATSAPP_CONTENT_SID
+            parametros['content_variables'] = json.dumps({
+                '1': nome_crianca,
+                '2': nome_turma,
+            }, ensure_ascii=False)
+        else:
+            parametros['body'] = (
+                f'🚨 Atenção! O responsável por {nome_crianca} ' 
+                f'precisa comparecer à sala {nome_turma}. ' 
+                'Por favor, dirija-se à sala assim que possível.'
+            )
+
+        mensagem = client.messages.create(**parametros)
+
+        print('=' * 60)
+        print('WHATSAPP ENVIADO VIA TWILIO')
+        print('Destino:', destino)
+        print('SID:', mensagem.sid)
+        print('Status:', mensagem.status)
+        print('=' * 60)
+
+        return True, mensagem.sid
+
+    except TwilioRestException as e:
+        print('=' * 60)
+        print('ERRO TWILIO / WHATSAPP')
+        print('Código:', getattr(e, 'code', None))
+        print('Mensagem:', str(e))
+        print('=' * 60)
+        return False, f'Twilio {getattr(e, "code", "")}: {e}'
+
+    except Exception as e:
+        print('=' * 60)
+        print('ERRO AO ENVIAR WHATSAPP')
+        print(repr(e))
+        print('=' * 60)
+        return False, repr(e)
+
+
 
 def salvar_foto(arquivo, prefixo):
     """Salva uma imagem com nome único para evitar sobrescrita entre usuários."""
@@ -170,6 +279,12 @@ class Responsavel(db.Model):
     vinculo = db.Column(db.String(50), nullable=False)
     endereco = db.Column(db.String(200), nullable=True)
     foto_url = db.Column(db.String(200), nullable=True, default='default.png')
+    whatsapp_opt_in = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default='false'
+    )
 
 class Crianca(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -377,7 +492,8 @@ def finalizar_cadastro():
             telefone=request.form.get('telefone'),
             vinculo=request.form.get('vinculo'),
             endereco=request.form.get('endereco'),
-            foto_url=foto_nome
+            foto_url=foto_nome,
+            whatsapp_opt_in=request.form.get('whatsapp_opt_in') == 'on'
         )
         
         db.session.add(responsavel_principal)
@@ -757,11 +873,60 @@ def chamar_responsavel(crianca_id, turma_id):
         usuario_id=crianca.responsavel_id,
         mensagem=mensagem_alerta
     )
-    
+
     db.session.add(nova_notif)
     db.session.commit()
-    
-    flash(f'O responsável de {crianca.nome} foi notificado no painel do site com sucesso!', 'success')
+
+    # Busca o cadastro do responsável que está ligado à conta da criança.
+    responsavel = Responsavel.query.filter_by(
+        usuario_id=crianca.responsavel_id
+    ).first()
+
+    # Fallback para o telefone salvo na conta Usuario.
+    usuario_responsavel = db.session.get(
+        Usuario,
+        crianca.responsavel_id
+    )
+
+    telefone = None
+    opt_in = False
+
+    if responsavel:
+        telefone = responsavel.telefone
+        opt_in = bool(responsavel.whatsapp_opt_in)
+
+    if not telefone and usuario_responsavel:
+        telefone = usuario_responsavel.telefone
+
+    # O alerta interno continua funcionando mesmo quando o WhatsApp
+    # não estiver configurado ou o responsável não tiver dado opt-in.
+    whatsapp_enviado = False
+
+    if opt_in:
+        whatsapp_enviado, detalhe_whatsapp = enviar_whatsapp(
+            telefone,
+            crianca.nome,
+            turma.nome_classe
+        )
+    else:
+        detalhe_whatsapp = (
+            'Responsável não autorizou o recebimento de mensagens pelo WhatsApp.'
+        )
+        print('[WHATSAPP] Envio ignorado:', detalhe_whatsapp)
+
+    if whatsapp_enviado:
+        flash(
+            f'O responsável de {crianca.nome} foi notificado no painel e pelo WhatsApp.',
+            'success'
+        )
+    else:
+        flash(
+            f'O responsável de {crianca.nome} foi notificado no painel. '
+            'O WhatsApp não foi enviado.',
+            'warning'
+        )
+        print('[WHATSAPP] Detalhe:', detalhe_whatsapp)
+
     return redirect(url_for('lista_presenca', turma_id=turma_id))
 
 @app.route('/detalhes_crianca/<int:crianca_id>')
@@ -835,6 +1000,14 @@ def minha_conta():
     if request.method == 'POST':
         current_user.nome = request.form.get('nome')
         current_user.telefone = request.form.get('telefone')
+
+        responsavel = Responsavel.query.filter_by(
+            usuario_id=current_user.id
+        ).first()
+
+        if responsavel and current_user.telefone:
+            responsavel.telefone = current_user.telefone
+
         db.session.commit()
         return redirect(url_for('configuracoes'))
     return render_template('minha_conta.html')
@@ -854,7 +1027,8 @@ def adicionar_responsavel():
             telefone=request.form.get('telefone'),
             vinculo=request.form.get('vinculo'),
             endereco=request.form.get('endereco'),
-            foto_url=foto_nome
+            foto_url=foto_nome,
+            whatsapp_opt_in=request.form.get('whatsapp_opt_in') == 'on'
         )
         db.session.add(novo_responsavel)
         db.session.commit()
@@ -1460,6 +1634,39 @@ def configurar_sqlite():
 
 
 # ==========================================================
+# MIGRAÇÃO COMPATÍVEL COM BANCOS EXISTENTES
+# ==========================================================
+
+def garantir_coluna_whatsapp_opt_in():
+    """Garante a coluna de consentimento no banco já existente."""
+    inspector = inspect(db.engine)
+
+    if 'responsavel' not in inspector.get_table_names():
+        return
+
+    colunas = {col['name'] for col in inspector.get_columns('responsavel')}
+
+    if 'whatsapp_opt_in' in colunas:
+        return
+
+    if db.engine.dialect.name == 'postgresql':
+        comando = (
+            'ALTER TABLE responsavel ' 
+            'ADD COLUMN IF NOT EXISTS whatsapp_opt_in BOOLEAN NOT NULL DEFAULT FALSE'
+        )
+    else:
+        comando = (
+            'ALTER TABLE responsavel ' 
+            'ADD COLUMN whatsapp_opt_in BOOLEAN NOT NULL DEFAULT 0'
+        )
+
+    with db.engine.begin() as conn:
+        conn.execute(text(comando))
+
+    print('Coluna responsavel.whatsapp_opt_in criada.')
+
+
+# ==========================================================
 # INICIALIZAÇÃO DO BANCO
 # ==========================================================
 
@@ -1490,6 +1697,9 @@ def inicializar_banco():
 
             # Cria as tabelas definidas nos modelos
             db.create_all()
+
+            # Adapta a tabela Responsavel em bancos antigos.
+            garantir_coluna_whatsapp_opt_in()
 
             print("Tabelas verificadas/criadas com sucesso.")
 

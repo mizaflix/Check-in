@@ -24,6 +24,9 @@
         .input-wrapper input:focus, .input-wrapper select:focus { border-color: #008f68; }
         .row { display: flex; gap: 15px; }
         .row .input-wrapper { flex: 1; }
+
+        .whatsapp-consent { display:flex; align-items:flex-start; gap:10px; margin:-6px 0 20px; padding:12px 14px; background:#f4faf7; border:1px solid #d9eee5; border-radius:12px; color:#4b5b55; font-size:.82rem; line-height:1.4; cursor:pointer; }
+        .whatsapp-consent input { margin-top:3px; accent-color:#008f68; }
         .btn-submit { background-color: #008f68; color: white; border: none; padding: 16px; border-radius: 25px; font-size: 1rem; font-weight: 700; width: 100%; cursor: pointer; margin-top: auto; margin-bottom: 20px; }
     </style>
 </head>
@@ -60,6 +63,11 @@
                 </div>
             </div>
             <div class="input-wrapper"><label>Número de telefone</label><input type="tel" name="telefone" placeholder="Seu número para contato" required></div>
+            <label class="whatsapp-consent">
+                <input type="checkbox" name="whatsapp_opt_in" value="1">
+                <span>Autorizo o recebimento de avisos e solicitações do CheckKids pelo WhatsApp.</span>
+            </label>
+
             <div class="input-wrapper"><label>Vínculo</label><input type="text" name="vinculo" placeholder="Ex: Mãe, Pai, Avó..." required></div>
             <div class="input-wrapper"><label>Endereço</label><input type="text" name="endereco" placeholder="Rua, Número, Bairro"></div>
             

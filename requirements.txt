@@ -4,3 +4,4 @@ Flask-Login
 Werkzeug
 gunicorn
 psycopg2-binary==2.9.9
+twilio>=9.0.0
