@@ -268,6 +268,13 @@ class Usuario(UserMixin, db.Model):
     pode_editar_escala = db.Column(db.Boolean, default=False) 
     
     criancas = db.relationship('Crianca', backref='responsavel', lazy=True)
+
+    whatsapp_opt_in = db.Column(
+    db.Boolean,
+    nullable=False,
+    default=False,
+    server_default='false'
+)
 class Responsavel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
@@ -480,8 +487,19 @@ def cadastro():
 @app.route('/finalizar_cadastro', methods=['GET', 'POST'])
 @login_required
 def finalizar_cadastro():
+
     if request.method == 'POST':
-        foto_nome = salvar_foto(request.files.get('foto'), 'responsavel')
+
+        current_user.nome = request.form.get('nome')
+        current_user.telefone = request.form.get('telefone')
+        current_user.whatsapp_opt_in = (
+            request.form.get('whatsapp_opt_in') == 'on'
+        )
+
+        foto_nome = salvar_foto(
+            request.files.get('foto'),
+            'responsavel'
+        )
 
         responsavel_principal = Responsavel(
             usuario_id=current_user.id,
@@ -492,12 +510,13 @@ def finalizar_cadastro():
             telefone=request.form.get('telefone'),
             vinculo=request.form.get('vinculo'),
             endereco=request.form.get('endereco'),
-            foto_url=foto_nome,
-            whatsapp_opt_in=request.form.get('whatsapp_opt_in') == 'on'
+            foto_url=foto_nome
         )
-        
+
         db.session.add(responsavel_principal)
+
         db.session.commit()
+
         return redirect(url_for('dashboard'))
 
     return render_template('finalizar_cadastro.html')
@@ -857,18 +876,29 @@ def lista_presenca(turma_id):
     )
 
 
-@app.route('/chamar_responsavel/<int:crianca_id>/<int:turma_id>', methods=['POST'])
+@app.route(
+    '/chamar_responsavel/<int:crianca_id>/<int:turma_id>',
+    methods=['POST']
+)
 @login_required
 def chamar_responsavel(crianca_id, turma_id):
+
     if not current_user.is_professor and not current_user.is_admin:
         return jsonify({'erro': 'Acesso negado'}), 403
 
     crianca = Crianca.query.get_or_404(crianca_id)
-    
-    # Criar a mensagem de alerta para o pai
-    mensagem_alerta = f"🚨 Atenção! O professor da sala necessita da sua presença para tratar de {crianca.nome}. Por favor, dirija-se à sala."
-    
-    # Salva a notificação interna no banco de dados para o usuário responsável
+    turma = Turma.query.get_or_404(turma_id)
+
+    # ==========================================
+    # NOTIFICAÇÃO INTERNA
+    # ==========================================
+
+    mensagem_alerta = (
+        f"🚨 Atenção! O professor da sala necessita da sua presença "
+        f"para tratar de {crianca.nome}. "
+        f"Por favor, dirija-se à sala."
+    )
+
     nova_notif = Notificacao(
         usuario_id=crianca.responsavel_id,
         mensagem=mensagem_alerta
@@ -877,57 +907,87 @@ def chamar_responsavel(crianca_id, turma_id):
     db.session.add(nova_notif)
     db.session.commit()
 
-    # Busca o cadastro do responsável que está ligado à conta da criança.
-    responsavel = Responsavel.query.filter_by(
-        usuario_id=crianca.responsavel_id
-    ).first()
+    # ==========================================
+    # RESPONSÁVEL = CONTA USUARIO
+    # ==========================================
 
-    # Fallback para o telefone salvo na conta Usuario.
     usuario_responsavel = db.session.get(
         Usuario,
         crianca.responsavel_id
     )
 
-    telefone = None
-    opt_in = False
-
-    if responsavel:
-        telefone = responsavel.telefone
-        opt_in = bool(responsavel.whatsapp_opt_in)
-
-    if not telefone and usuario_responsavel:
-        telefone = usuario_responsavel.telefone
-
-    # O alerta interno continua funcionando mesmo quando o WhatsApp
-    # não estiver configurado ou o responsável não tiver dado opt-in.
     whatsapp_enviado = False
 
-    if opt_in:
-        whatsapp_enviado, detalhe_whatsapp = enviar_whatsapp(
-            telefone,
-            crianca.nome,
-            turma.nome_classe
-        )
-    else:
+    if not usuario_responsavel:
+
         detalhe_whatsapp = (
-            'Responsável não autorizou o recebimento de mensagens pelo WhatsApp.'
+            'A conta do responsável não foi encontrada.'
         )
-        print('[WHATSAPP] Envio ignorado:', detalhe_whatsapp)
+
+    else:
+
+        telefone = usuario_responsavel.telefone
+        opt_in = bool(
+            usuario_responsavel.whatsapp_opt_in
+        )
+
+        if not telefone:
+
+            detalhe_whatsapp = (
+                'O responsável não possui telefone cadastrado.'
+            )
+
+        elif not opt_in:
+
+            detalhe_whatsapp = (
+                'O responsável não autorizou o recebimento '
+                'de mensagens pelo WhatsApp.'
+            )
+
+            print(
+                '[WHATSAPP] Envio ignorado:',
+                detalhe_whatsapp
+            )
+
+        else:
+
+            whatsapp_enviado, detalhe_whatsapp = enviar_whatsapp(
+                telefone,
+                crianca.nome,
+                turma.nome_classe
+            )
+
+    # ==========================================
+    # RESULTADO
+    # ==========================================
 
     if whatsapp_enviado:
+
         flash(
-            f'O responsável de {crianca.nome} foi notificado no painel e pelo WhatsApp.',
+            f'O responsável de {crianca.nome} foi notificado '
+            'no painel e pelo WhatsApp.',
             'success'
         )
+
     else:
+
         flash(
             f'O responsável de {crianca.nome} foi notificado no painel. '
             'O WhatsApp não foi enviado.',
             'warning'
         )
-        print('[WHATSAPP] Detalhe:', detalhe_whatsapp)
 
-    return redirect(url_for('lista_presenca', turma_id=turma_id))
+        print(
+            '[WHATSAPP] Detalhe:',
+            detalhe_whatsapp
+        )
+
+    return redirect(
+        url_for(
+            'lista_presenca',
+            turma_id=turma_id
+        )
+    )
 
 @app.route('/detalhes_crianca/<int:crianca_id>')
 @login_required
