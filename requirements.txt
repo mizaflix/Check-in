@@ -3,5 +3,5 @@ Flask-SQLAlchemy
 Flask-Login
 Werkzeug
 gunicorn
-psycopg2-binary==2.9.9
+psycopg[binary]>=3.2,<4
 twilio>=9.0.0
