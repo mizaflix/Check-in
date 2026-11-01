@@ -1,0 +1,20 @@
+# Segredos e configuração local
+.env
+.env.*
+!.env.example
+
+# Bancos de dados locais e arquivos temporários
+instance/
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.py[cod]
+
+# Ambientes virtuais
+.venv/
+venv/
+
+# Fotos enviadas pelos usuários (armazenamento de dados, não código-fonte)
+static/uploads/*
+!static/uploads/.gitkeep

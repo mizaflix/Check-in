@@ -28,3 +28,17 @@ A aplicação verifica a tabela `responsavel` durante a inicialização e cria a
 ### Sandbox
 
 Para testes, a Twilio oferece um ambiente de WhatsApp. Cada destinatário precisa aderir ao Sandbox. Fora da janela de atendimento iniciada pelo usuário, o WhatsApp exige um template aprovado; por isso, para produção, configure `TWILIO_WHATSAPP_CONTENT_SID`.
+
+## Atualizações de administração e check-in
+
+Esta versão também inclui:
+
+- Painel administrativo redesenhado, com indicadores gerais e atalhos para a escala e os usuários.
+- Gerenciamento administrativo de contas: criar usuários, pesquisar/filtrar, editar nome/e-mail/telefone, alterar perfil e redefinir senha.
+- Exclusão protegida: não permite excluir a própria conta, o último administrador ou contas que ainda tenham vínculo com crianças, responsáveis, notificações ou escalas.
+- Contador de presentes na tela do QR atualizado automaticamente a cada 5 segundos. A atualização consulta somente a contagem e não recria nem altera o conteúdo do QR Code.
+- Ação **Reabrir Check-in** no painel do professor quando a turma está em andamento. Ela volta a aceitar novas entradas usando o mesmo QR Code da turma.
+
+### Publicação
+
+As novas telas e rotas não exigem uma nova coluna no banco de dados. Faça o deploy do código atualizado normalmente no Render. O arquivo `.env`, os bancos locais e as fotos enviadas por usuários não fazem parte do pacote de código; mantenha as variáveis de ambiente e os dados reais somente no ambiente correto.

@@ -3,70 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#087f63">
     <title>QR Code {{ 'Check-out' if modo == 'checkout' else 'Check-in' }} - CheckKids</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        body { background-color: #ffffff; display: flex; justify-content: center; font-family: 'Nunito', sans-serif; margin: 0; }
-        .app-container { width: 100%; max-width: 400px; padding: 24px 20px; position: relative; min-height: 95vh; }
-        
-        /* Navegação do Topo */
-        .nav-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 35px; }
-        .nav-top a { color: #028c6a; font-size: 1.3rem; text-decoration: none; }
-        .nav-top h1 { color: #028c6a; font-size: 1.4rem; font-weight: 700; margin: 0; }
-        
-        /* Banner de Status (Verde Claro) */
-        .status-banner { background: #eef7f4; padding: 16px; border-radius: 16px; text-align: center; color: #028c6a; font-weight: 700; font-size: 0.95rem; margin-bottom: 40px; }
-        .status-banner i { margin-right: 5px; }
-        
-        /* Área do QR Code */
-        .qr-container { text-align: center; margin-bottom: 15px; }
-        .qr-image { width: 220px; height: 220px; border: 2px solid #edf2f0; border-radius: 20px; padding: 15px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        .qr-hint { text-align: center; color: #a5a5a5; font-size: 0.9rem; font-weight: 600; margin-bottom: 50px; }
-        
-        /* Container de Ações Fixo Embaixo */
-        .footer-action-container { position: absolute; bottom: 30px; width: calc(100% - 40px); display: flex; flex-direction: column; gap: 12px; }
-        .btn-main-action { background: #028c6a; color: white; border: none; width: 100%; padding: 14px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; display: block; box-shadow: 0 4px 12px rgba(2, 140, 106, 0.15); }
-        .btn-secondary-action { background: #ffffff; color: #028c6a; border: 2px solid #028c6a; width: 100%; padding: 12px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; display: block; }
+        :root{--green:#087f63;--green-dark:#05644f;--soft:#eaf7f2;--ink:#182b27;--muted:#71817c;--line:#e6eeeb;--bg:#f3f8f6}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#e2f5ec 0,transparent 35%),var(--bg);font-family:'DM Sans',sans-serif;color:var(--ink);display:flex;justify-content:center;padding:26px 14px}.app-container{width:100%;max-width:470px;min-height:calc(100vh - 52px);background:#fff;border:1px solid #e5efea;border-radius:26px;padding:24px;display:flex;flex-direction:column;box-shadow:0 15px 50px rgba(8,72,52,.08)}.nav-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}.icon-link{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;text-decoration:none;color:var(--green);background:var(--soft);flex-shrink:0}.nav-title{min-width:0;text-align:center}.nav-title small{display:block;font-size:.69rem;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:var(--muted);margin-bottom:3px}.nav-title h1{font:800 1.1rem 'Manrope',sans-serif;color:var(--ink);margin:0;overflow-wrap:anywhere}.status-banner{display:flex;align-items:center;gap:12px;border:1px solid #d7eee4;background:#f0faf5;padding:16px;border-radius:17px;color:var(--green);margin-bottom:24px}.status-icon{width:41px;height:41px;display:grid;place-items:center;border-radius:13px;background:#ddf5e9;font-size:1.1rem;flex-shrink:0}.status-copy strong{display:block;font:800 1.18rem 'Manrope',sans-serif;font-variant-numeric:tabular-nums}.status-copy span{display:block;color:#55766a;font-size:.78rem;margin-top:3px}.qr-container{display:flex;justify-content:center;padding:8px 0 16px}.qr-frame{background:#fff;border:1px solid var(--line);border-radius:24px;padding:14px;box-shadow:0 8px 25px rgba(8,72,52,.06)}.qr-image{display:block;width:min(60vw,245px);height:min(60vw,245px);max-width:245px;max-height:245px;object-fit:contain;border-radius:14px}.qr-hint{text-align:center;color:var(--muted);font-size:.88rem;line-height:1.6;margin:0 auto 20px;max-width:320px}.live-indicator{display:flex;align-items:center;justify-content:center;gap:7px;color:#82938c;font-size:.72rem;margin-bottom:20px}.live-dot{width:7px;height:7px;border-radius:50%;background:#18a775;box-shadow:0 0 0 4px #18a7751c}.footer-actions{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:8px}.btn{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 16px;border-radius:14px;text-decoration:none;text-align:center;font:800 .9rem 'DM Sans',sans-serif;transition:transform .15s,background .15s}.btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--green);color:#fff;box-shadow:0 7px 17px rgba(8,127,99,.17)}.btn-primary:hover{background:var(--green-dark)}.btn-secondary{background:#fff;color:var(--green);border:1px solid #cde7dc}.btn-muted{color:#536660;background:#f4f7f5}.footer-note{text-align:center;color:#9aa8a2;font-size:.7rem;margin:17px 0 0}@media(max-width:380px){.app-container{padding:18px}.nav-title h1{font-size:1rem}.status-banner{padding:13px}.status-copy strong{font-size:1.05rem}}
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="nav-top">
-            <a href="{{ url_for('dashboard_professor') }}"><i class="fa-solid fa-arrow-left"></i></a>
-            <h1>{{ turma.nome_classe }} - {{ 'Check-out' if modo == 'checkout' else 'Check-in' }}</h1>
-            <a href="{{ url_for('notificacoes') }}"><i class="fa-regular fa-bell"></i></a>
-        </div>
+    <main class="app-container">
+        <header class="nav-top">
+            <a class="icon-link" href="{{ url_for('dashboard_professor') }}" aria-label="Voltar ao painel"><i class="fa-solid fa-arrow-left"></i></a>
+            <div class="nav-title"><small>CheckKids · Controle de acesso</small><h1>{{ turma.nome_classe }} · {{ 'Check-out' if modo == 'checkout' else 'Check-in' }}</h1></div>
+            <a class="icon-link" href="{{ url_for('notificacoes') }}" aria-label="Notificações"><i class="fa-regular fa-bell"></i></a>
+        </header>
 
-        <div class="status-banner">
-            {% if modo == 'checkout' %}
-                <i class="fa-solid fa-right-from-bracket"></i> {{ qtd_presentes }} Crianças ainda estão presentes
-            {% else %}
-                <i class="fa-regular fa-circle-check"></i> {{ qtd_presentes }} Crianças já entraram na classe
-            {% endif %}
-        </div>
+        <section class="status-banner" aria-live="polite" aria-atomic="true">
+            <span class="status-icon"><i class="fa-regular {{ 'fa-circle-check' if modo != 'checkout' else 'fa-circle-user' }}"></i></span>
+            <div class="status-copy"><strong id="qtd-presentes">{{ qtd_presentes }}</strong><span id="status-description">{% if modo == 'checkout' %}criança(s) ainda presente(s){% else %}criança(s) com check-in registrado{% endif %}</span></div>
+        </section>
 
-        <div class="qr-container">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=checkkids_turma_{{ turma.id }}" alt="QR Code da Turma" class="qr-image">
-        </div>
-        
-        <p class="qr-hint">
-            {% if modo == 'checkout' %}
-                Peça aos responsáveis para apontarem a câmera para o código acima e realizarem o check-out.
-            {% else %}
-                Posicione a câmera no código acima para realizar o check-in.
-            {% endif %}
-        </p>
+        <div class="qr-container"><div class="qr-frame">
+            <!-- O conteúdo do QR Code permanece fixo; o atualizador abaixo só consulta a contagem. -->
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=checkkids_turma_{{ turma.id }}" alt="QR Code da turma {{ turma.nome_classe }}" class="qr-image" id="qr-code-turma">
+        </div></div>
+        <p class="qr-hint">{% if modo == 'checkout' %}Peça aos responsáveis para apontarem a câmera para o código acima e realizarem o check-out.{% else %}Peça ao responsável para escanear este código para registrar a entrada da criança.{% endif %}</p>
+        <div class="live-indicator"><span class="live-dot"></span><span>Contagem atualizada automaticamente</span></div>
 
-        <div class="footer-action-container">
+        <footer class="footer-actions">
             {% if modo == 'checkout' %}
-                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='finalizar_checkout') }}" class="btn-main-action">Concluir Check-out</a>
+                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='finalizar_checkout') }}" class="btn btn-primary" onclick="return confirm('Concluir o check-out desta turma?')"><i class="fa-solid fa-flag-checkered"></i> Concluir check-out</a>
             {% else %}
-                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='iniciar_aula') }}" class="btn-main-action">Finalizar Check-in</a>
+                <a href="{{ url_for('gerenciar_turma', turma_id=turma.id, acao='iniciar_aula') }}" class="btn btn-primary" onclick="return confirm('Finalizar o período de check-in? O QR Code deixará de aceitar novas entradas até ser reaberto.')"><i class="fa-solid fa-circle-check"></i> Finalizar check-in</a>
             {% endif %}
-            
-            <a href="{{ url_for('lista_presenca', turma_id=turma.id) }}" class="btn-secondary-action">Lista de presentes</a>
-        </div>
-    </div>
+            <a href="{{ url_for('lista_presenca', turma_id=turma.id) }}" class="btn btn-secondary"><i class="fa-solid fa-clipboard-list"></i> Ver lista de presença</a>
+            <a href="{{ url_for('dashboard_professor') }}" class="btn btn-muted"><i class="fa-solid fa-house"></i> Voltar ao painel</a>
+        </footer>
+        <p class="footer-note">A tela consulta somente o total de crianças. O QR Code não é recriado durante as atualizações.</p>
+    </main>
+
+    <script>
+        (() => {
+            const endpoint = {{ url_for('contagem_turma', turma_id=turma.id)|tojson }};
+            const contador = document.getElementById('qtd-presentes');
+            const descricao = document.getElementById('status-description');
+            const modo = {{ modo|tojson }};
+            let consultaEmAndamento = false;
+
+            async function atualizarContagem() {
+                if (consultaEmAndamento || document.visibilityState === 'hidden') return;
+                consultaEmAndamento = true;
+                try {
+                    const resposta = await fetch(endpoint, {
+                        method: 'GET',
+                        cache: 'no-store',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!resposta.ok) return;
+                    const dados = await resposta.json();
+                    if (Number.isFinite(dados.qtd_presentes)) {
+                        contador.textContent = String(dados.qtd_presentes);
+                        descricao.textContent = modo === 'checkout'
+                            ? 'criança(s) ainda presente(s)'
+                            : 'criança(s) com check-in registrado';
+                    }
+                } catch (erro) {
+                    // Falhas breves de rede não devem interromper o uso do QR Code.
+                    console.debug('Não foi possível atualizar a contagem neste ciclo.');
+                } finally {
+                    consultaEmAndamento = false;
+                }
+            }
+
+            atualizarContagem();
+            window.setInterval(atualizarContagem, 5000);
+        })();
+    </script>
 </body>
 </html>

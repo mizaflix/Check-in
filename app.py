@@ -16,7 +16,7 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import event, inspect, text
+from sqlalchemy import event, inspect, text, or_
 
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
@@ -530,6 +530,10 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # Administradores sempre entram primeiro na área administrativa, mesmo
+    # quando também possuem perfil de professor/auxiliar.
+    if current_user.is_admin:
+        return redirect(url_for('admin_dashboard'))
     if current_user.is_professor:
         return redirect(url_for('dashboard_professor'))
 
@@ -758,6 +762,17 @@ def gerenciar_turma(turma_id, acao):
         db.session.commit()
         return redirect(url_for('dashboard_professor'))
 
+    elif acao == 'reabrir_checkin':
+        if turma.status != 'acontecendo':
+            flash('Só é possível reabrir o check-in depois de finalizá-lo e antes do check-out.', 'warning')
+            return redirect(url_for('dashboard_professor'))
+
+        # O QR Code continua usando o mesmo identificador da turma.
+        turma.status = 'checkin'
+        db.session.commit()
+        flash('Check-in reaberto. O mesmo QR Code voltou a aceitar entradas.', 'success')
+        return redirect(url_for('tela_qr', turma_id=turma.id))
+
     elif acao == 'iniciar_checkout':
         if turma.status != 'acontecendo':
             flash('O check-out só pode ser iniciado após o término do período de check-in.', 'warning')
@@ -824,6 +839,30 @@ def tela_qr(turma_id):
         qtd_presentes=qtd_presentes,
         modo='checkin'
     )
+
+
+@app.route('/api/turma/<int:turma_id>/contagem')
+@login_required
+def contagem_turma(turma_id):
+    """Retorna a contagem atual para atualização leve da tela do QR Code."""
+    turma = Turma.query.get_or_404(turma_id)
+
+    if not usuario_pode_gerenciar_turma(turma):
+        return jsonify({'erro': 'Acesso negado'}), 403
+
+    qtd_presentes = Checkin.query.filter_by(
+        turma_id=turma.id,
+        data_hora_saida=None
+    ).count()
+
+    resposta = jsonify({
+        'turma_id': turma.id,
+        'status': turma.status,
+        'qtd_presentes': qtd_presentes,
+        'atualizado_em': datetime.utcnow().isoformat() + 'Z'
+    })
+    resposta.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return resposta
 
 
 @app.route('/tela_qr_checkout/<int:turma_id>')
@@ -1243,20 +1282,208 @@ def admin_dashboard():
         flash('Acesso negado. Área restrita à diretoria.', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Pega todos os dados do banco para o Admin ter visão geral
-    professores = Usuario.query.filter_by(is_professor=True).all()
-    criancas = Crianca.query.all()
-    turmas = Turma.query.all()
-    responsaveis = Responsavel.query.all()
-    
+    # Indicadores gerais para a visão administrativa.
+    professores = Usuario.query.filter_by(is_professor=True).order_by(Usuario.nome.asc()).all()
+    criancas = Crianca.query.count()
+    turmas = Turma.query.count()
+    responsaveis = Responsavel.query.count()
+    total_usuarios = Usuario.query.count()
+    turmas_abertas = Turma.query.filter(Turma.status.in_(['checkin', 'acontecendo', 'checkout'])).count()
+
     return render_template(
         'admin_dashboard.html',
         professores=professores,
-        criancas=criancas,
-        turmas=turmas,
-        responsaveis=responsaveis,
+        total_criancas=criancas,
+        total_turmas=turmas,
+        total_responsaveis=responsaveis,
+        total_usuarios=total_usuarios,
+        turmas_abertas=turmas_abertas,
         mes_padrao=datetime.now().strftime('%Y-%m')
     )
+
+
+@app.route('/admin/usuarios')
+@login_required
+def admin_usuarios():
+    if not current_user.is_admin:
+        flash('Acesso negado. Área restrita à administração.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    termo = request.args.get('q', '').strip()
+    filtro_papel = request.args.get('papel', '').strip()
+    consulta = Usuario.query
+
+    if termo:
+        padrao = f'%{termo}%'
+        consulta = consulta.filter(or_(Usuario.nome.ilike(padrao), Usuario.email.ilike(padrao)))
+
+    if filtro_papel == 'admin':
+        consulta = consulta.filter(Usuario.is_admin.is_(True))
+    elif filtro_papel == 'professor':
+        consulta = consulta.filter(Usuario.is_professor.is_(True))
+    elif filtro_papel == 'responsavel':
+        consulta = consulta.filter(Usuario.is_admin.is_(False), Usuario.is_professor.is_(False))
+
+    usuarios = consulta.order_by(Usuario.nome.asc()).all()
+    return render_template(
+        'admin_usuarios.html',
+        usuarios=usuarios,
+        termo=termo,
+        filtro_papel=filtro_papel,
+        total_usuarios=Usuario.query.count()
+    )
+
+
+def papel_usuario(usuario):
+    if usuario.is_admin and usuario.is_professor:
+        return 'admin_professor'
+    if usuario.is_admin:
+        return 'admin'
+    if usuario.is_professor:
+        papel = (usuario.funcao_papeis or 'professor').lower()
+        return papel if papel in ('professor', 'auxiliar', 'ambos') else 'professor'
+    return 'responsavel'
+
+
+@app.route('/admin/usuarios/novo', methods=['GET', 'POST'])
+@login_required
+def admin_novo_usuario():
+    if not current_user.is_admin:
+        flash('Acesso negado. Área restrita à administração.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        telefone = request.form.get('telefone', '').strip()
+        senha = request.form.get('senha', '')
+        papel = request.form.get('papel', 'responsavel')
+
+        if not nome or not email or not senha:
+            flash('Preencha nome, e-mail e senha.', 'danger')
+        elif len(senha) < 6:
+            flash('A senha deve ter pelo menos 6 caracteres.', 'danger')
+        elif papel not in ('responsavel', 'professor', 'auxiliar', 'ambos', 'admin', 'admin_professor'):
+            flash('Selecione um perfil válido.', 'danger')
+        elif Usuario.query.filter_by(email=email).first():
+            flash('Já existe um usuário cadastrado com esse e-mail.', 'danger')
+        else:
+            is_admin = papel in ('admin', 'admin_professor')
+            is_professor = papel in ('professor', 'auxiliar', 'ambos', 'admin_professor')
+            funcao = papel if papel in ('professor', 'auxiliar', 'ambos') else ('ambos' if papel == 'admin_professor' else 'responsavel')
+            usuario = Usuario(
+                nome=nome,
+                email=email,
+                telefone=telefone or None,
+                senha_hash=generate_password_hash(senha),
+                is_admin=is_admin,
+                is_professor=is_professor,
+                funcao_papeis=funcao,
+                pode_editar_escala=False
+            )
+            db.session.add(usuario)
+            db.session.commit()
+            flash(f'Usuário {nome} criado com sucesso.', 'success')
+            return redirect(url_for('admin_usuarios'))
+
+    return render_template('admin_usuario_form.html', usuario=None, papel_atual='responsavel')
+
+
+@app.route('/admin/usuarios/<int:usuario_id>/editar', methods=['GET', 'POST'])
+@login_required
+def admin_editar_usuario(usuario_id):
+    if not current_user.is_admin:
+        flash('Acesso negado. Área restrita à administração.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    usuario = Usuario.query.get_or_404(usuario_id)
+    papel_atual = papel_usuario(usuario)
+
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        telefone = request.form.get('telefone', '').strip()
+        nova_senha = request.form.get('senha', '')
+        papel = request.form.get('papel', papel_atual)
+
+        email_existente = Usuario.query.filter(Usuario.email == email, Usuario.id != usuario.id).first() if email else None
+        papeis_validos = ('responsavel', 'professor', 'auxiliar', 'ambos', 'admin', 'admin_professor')
+        novo_admin = papel in ('admin', 'admin_professor')
+        novo_professor = papel in ('professor', 'auxiliar', 'ambos', 'admin_professor')
+
+        if not nome or not email:
+            flash('Nome e e-mail são obrigatórios.', 'danger')
+        elif email_existente:
+            flash('Esse e-mail já está sendo usado por outra conta.', 'danger')
+        elif papel not in papeis_validos:
+            flash('Selecione um perfil válido.', 'danger')
+        elif nova_senha and len(nova_senha) < 6:
+            flash('A nova senha deve ter pelo menos 6 caracteres.', 'danger')
+        elif usuario.id == current_user.id and not novo_admin:
+            flash('Por segurança, você não pode remover seu próprio acesso administrativo.', 'danger')
+        elif usuario.is_admin and not novo_admin and Usuario.query.filter_by(is_admin=True).count() <= 1:
+            flash('O sistema precisa manter pelo menos um administrador.', 'danger')
+        elif usuario.is_professor and not novo_professor and Turma.query.filter(or_(Turma.professor_id == usuario.id, Turma.auxiliar_id == usuario.id)).first() is not None:
+            flash('Este profissional está atribuído a uma ou mais turmas. Reatribua a escala antes de remover o perfil de professor/auxiliar.', 'danger')
+        else:
+            usuario.nome = nome
+            usuario.email = email
+            usuario.telefone = telefone or None
+            usuario.is_admin = novo_admin
+            usuario.is_professor = novo_professor
+            usuario.funcao_papeis = papel if papel in ('professor', 'auxiliar', 'ambos') else ('ambos' if papel == 'admin_professor' else 'responsavel')
+            if nova_senha:
+                usuario.senha_hash = generate_password_hash(nova_senha)
+
+            # Mantém os dados básicos de contato sincronizados para perfis de responsável já existentes.
+            responsaveis_vinculados = Responsavel.query.filter_by(usuario_id=usuario.id).all()
+            for responsavel in responsaveis_vinculados:
+                responsavel.nome = nome
+                if telefone:
+                    responsavel.telefone = telefone
+
+            db.session.commit()
+            flash(f'Usuário {nome} atualizado com sucesso.', 'success')
+            return redirect(url_for('admin_usuarios'))
+
+        papel_atual = papel
+
+    return render_template('admin_usuario_form.html', usuario=usuario, papel_atual=papel_atual)
+
+
+@app.route('/admin/usuarios/<int:usuario_id>/excluir', methods=['POST'])
+@login_required
+def admin_excluir_usuario(usuario_id):
+    if not current_user.is_admin:
+        flash('Acesso negado. Área restrita à administração.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    usuario = Usuario.query.get_or_404(usuario_id)
+    if usuario.id == current_user.id:
+        flash('Você não pode excluir a própria conta enquanto estiver conectado.', 'danger')
+        return redirect(url_for('admin_usuarios'))
+
+    if usuario.is_admin and Usuario.query.filter_by(is_admin=True).count() <= 1:
+        flash('Não é possível excluir o último administrador do sistema.', 'danger')
+        return redirect(url_for('admin_usuarios'))
+
+    possui_vinculos = any([
+        Crianca.query.filter_by(responsavel_id=usuario.id).first() is not None,
+        Crianca.query.filter_by(usuario_id=usuario.id).first() is not None,
+        Responsavel.query.filter_by(usuario_id=usuario.id).first() is not None,
+        Notificacao.query.filter_by(usuario_id=usuario.id).first() is not None,
+        Turma.query.filter(or_(Turma.professor_id == usuario.id, Turma.auxiliar_id == usuario.id)).first() is not None,
+    ])
+    if possui_vinculos:
+        flash('Este usuário possui crianças, notificações, perfil de responsável ou vínculo com escala. Edite o perfil em vez de excluir para preservar o histórico.', 'warning')
+        return redirect(url_for('admin_usuarios'))
+
+    nome = usuario.nome
+    db.session.delete(usuario)
+    db.session.commit()
+    flash(f'Usuário {nome} excluído com sucesso.', 'success')
+    return redirect(url_for('admin_usuarios'))
+
 
 @app.route('/admin/toggle_escala/<int:prof_id>')
 @login_required
