@@ -4,4 +4,6 @@ Flask-Login
 Werkzeug
 gunicorn
 twilio
-psycopg
+psycopg[binary]>=3.2,<4
+cloudinary==1.46.3
+python-dotenv>=1.0,<2

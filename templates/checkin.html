@@ -174,8 +174,8 @@
             {% for crianca in criancas %}
             <div class="user-card">
                 <div class="avatar">
-                    {% if crianca.foto_url != 'default.png' %}
-                        <img src="{{ url_for('static', filename='uploads/' + crianca.foto_url) }}" alt="Foto">
+                    {% if crianca.foto_url and crianca.foto_url != 'default.png' %}
+                        <img src="{{ url_foto(crianca.foto_url) }}" alt="Foto">
                     {% else %}
                         <i class="fa-solid fa-child text-green"></i>
                     {% endif %}

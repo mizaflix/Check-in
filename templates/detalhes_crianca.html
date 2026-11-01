@@ -40,7 +40,7 @@
         <div class="profile-card">
             <div class="hero">
                 {% if crianca.foto_url and crianca.foto_url != 'default.png' %}
-                    <img src="{{ url_for('static', filename='uploads/' + crianca.foto_url) }}" alt="Foto de {{ crianca.nome }}" class="avatar">
+                    <img src="{{ url_foto(crianca.foto_url) }}" alt="Foto de {{ crianca.nome }}" class="avatar">
                 {% else %}
                     <div class="avatar" style="display:flex;align-items:center;justify-content:center;color:#028c6a;font-size:1.8rem;">
                         <i class="fa-solid fa-child"></i>
@@ -70,6 +70,10 @@
             {% if responsavel %}
             <div class="section">
                 <h2>Responsável</h2>
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <img src="{{ url_foto(responsavel.foto_url) }}" alt="Foto do responsável" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #eef7f4;">
+                    <strong>{{ responsavel.nome }}</strong>
+                </div>
                 <div class="info-row"><span class="label">Nome</span><span class="value">{{ responsavel.nome }}</span></div>
                 <div class="info-row"><span class="label">Vínculo</span><span class="value">{{ responsavel.vinculo }}</span></div>
                 <div class="info-row"><span class="label">Telefone</span><span class="value">{{ responsavel.telefone }}</span></div>

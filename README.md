@@ -42,3 +42,15 @@ Esta versão também inclui:
 ### Publicação
 
 As novas telas e rotas não exigem uma nova coluna no banco de dados. Faça o deploy do código atualizado normalmente no Render. O arquivo `.env`, os bancos locais e as fotos enviadas por usuários não fazem parte do pacote de código; mantenha as variáveis de ambiente e os dados reais somente no ambiente correto.
+## Fotos de perfil e armazenamento permanente
+
+O sistema agora aceita Cloudinary para armazenar fotos de responsáveis, crianças e professores. Configure `CLOUDINARY_URL` no ambiente local e no Render (Environment). O valor pode ser copiado da área **API Keys** do painel Cloudinary. O código grava no PostgreSQL apenas uma referência curta `cloudinary:<public_id>`, e gera a URL de exibição quando necessário.
+
+Para o Render, não deixe uploads no filesystem temporário: sem Cloudinary, conecte um **Persistent Disk** ao serviço e configure `UPLOAD_FOLDER=/var/data/uploads` com o mount path `/var/data`. O caminho é configurável por variável de ambiente.
+
+No computador local, quando `CLOUDINARY_URL` não estiver configurado, as imagens continuam sendo salvas em `static/uploads`.
+
+A página **Minha conta** permite atualizar a foto do responsável. A escala geral do administrador utiliza agora a mesma barra lateral e a identidade visual do painel administrativo.
+
+
+Se ainda existirem cópias das fotos antigas no diretório local `static/uploads`, depois de configurar `DATABASE_URL` e `CLOUDINARY_URL` no `.env`, execute `python migrar_fotos_cloudinary.py`. O script envia os arquivos encontrados e atualiza as referências correspondentes no banco. Arquivos que não existirem localmente são apenas listados, sem apagar registros.

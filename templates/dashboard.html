@@ -261,24 +261,13 @@
         </div>
 
         <div class="user-profile">
-    {% if responsavel %}
-        <div class="profile-info">
-            <img src="{{ url_for('static', filename='uploads/' + responsavel.foto_url) }}" alt="Foto do Responsável" class="avatar">
-            <div>
-                <p class="welcome-text">Bem-vindo(a),</p>
-                <h2 class="user-name">{{ responsavel.nome }}</h2>
-            </div>
+    <div class="profile-info">
+        <img src="{{ url_foto(current_user.foto_perfil if current_user.foto_perfil and current_user.foto_perfil != 'default.png' else (responsavel.foto_url if responsavel else None)) }}" alt="Foto do Responsável" class="avatar">
+        <div>
+            <p class="welcome-text">Bem-vindo(a),</p>
+            <h2 class="user-name">{{ responsavel.nome if responsavel else current_user.nome }}</h2>
         </div>
-    {% else %}
-        <div class="profile-info">
-            <div class="avatar-placeholder"><i class="fa-solid fa-user"></i></div>
-            <div>
-                <p class="welcome-text">Bem-vindo(a),</p>
-                <h2 class="user-name">Usuário</h2>
-            </div>
-        </div>
-    {% endif %}
-    
+    </div>
 </div>
 
         <br>
@@ -292,8 +281,8 @@
             {% for crianca in criancas %}
             <div class="user-card">
                 <div class="avatar">
-                    {% if crianca.foto_url != 'default.png' %}
-                        <img src="{{ url_for('static', filename='uploads/' + crianca.foto_url) }}" alt="Foto">
+                    {% if crianca.foto_url and crianca.foto_url != 'default.png' %}
+                        <img src="{{ url_foto(crianca.foto_url) }}" alt="Foto">
                     {% else %}
                         <i class="fa-solid fa-child text-green"></i>
                     {% endif %}

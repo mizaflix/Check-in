@@ -70,7 +70,7 @@
                 <div class="student-header">
                     <div class="student-profile">
                         {% if c.crianca.foto_url and c.crianca.foto_url != 'default.png' %}
-                            <img src="{{ url_for('static', filename='uploads/' + c.crianca.foto_url) }}" alt="Avatar" class="student-avatar">
+                            <img src="{{ url_foto(c.crianca.foto_url) }}" alt="Avatar" class="student-avatar">
                         {% else %}
                             <div class="student-avatar" style="display:flex;align-items:center;justify-content:center;color:#028c6a;font-size:1.25rem;">
                                 <i class="fa-solid fa-child"></i>

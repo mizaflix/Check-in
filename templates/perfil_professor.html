@@ -30,15 +30,15 @@
     <div class="app-container">
         <div class="header">
             <a href="{{ url_for('dashboard_professor') }}" class="nav-back"><i class="fa-solid fa-arrow-left"></i></a>
-            <img src="{{ url_for('static', filename='uploads/' + current_user.foto_perfil) }}" alt="Foto" class="profile-pic">
+            <img src="{{ url_foto(current_user.foto_perfil) }}" alt="Foto" class="profile-pic">
             <h2 class="profile-name">{{ current_user.nome }}</h2>
             <p class="profile-role">Professor / Auxiliar</p>
         </div>
 
         <div class="menu-section">
             <div class="menu-title">Meu perfil</div>
-            <a href="#" class="menu-item">
-                <span>Editar dados</span>
+            <a href="{{ url_for('minha_conta') }}" class="menu-item">
+                <span>Editar dados e foto</span>
                 <i class="fa-solid fa-chevron-right right"></i>
             </a>
 

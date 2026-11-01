@@ -4,7 +4,8 @@ import sqlite3
 import uuid
 import re
 import json
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from urllib.parse import quote, urlparse
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager,
@@ -18,13 +19,20 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy import event, inspect, text, or_
 
+# Carrega .env em desenvolvimento local, sem exigir dotenv no servidor.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = 'chave_secreta_checkkids_ipjardim'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'chave_secreta_checkkids_ipjardim')
 
 database_url = os.getenv(
     'DATABASE_URL',
@@ -56,17 +64,16 @@ else:
         'pool_pre_ping': True
     }
 
-UPLOAD_FOLDER = os.path.join(
-    'static',
-    'uploads'
+# Imagens: localmente usa static/uploads. Em produção, prefira Cloudinary
+# (CLOUDINARY_URL) ou um disco persistente do Render (UPLOAD_FOLDER=/var/data/uploads).
+UPLOAD_FOLDER_CONFIG = os.getenv('UPLOAD_FOLDER', '').strip()
+UPLOAD_FOLDER = os.path.abspath(
+    UPLOAD_FOLDER_CONFIG or os.path.join(app.root_path, 'static', 'uploads')
 )
-
+CLOUDINARY_URL = os.getenv('CLOUDINARY_URL', '').strip()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-os.makedirs(
-    UPLOAD_FOLDER,
-    exist_ok=True
-)
+app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024  # 8 MB por requisição
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 MESES_PT = [
@@ -179,16 +186,103 @@ def enviar_whatsapp(telefone, nome_crianca, nome_turma):
 
 
 def salvar_foto(arquivo, prefixo):
-    """Salva uma imagem com nome único para evitar sobrescrita entre usuários."""
+    """Armazena uma imagem em Cloudinary ou em um diretório local persistente.
+
+    O banco guarda um identificador curto (cloudinary:<public_id>) quando
+    Cloudinary está configurado. Sem Cloudinary, guarda apenas o nome do arquivo.
+    """
     if not arquivo or not arquivo.filename:
         return 'default.png'
+
     nome_original = secure_filename(arquivo.filename)
     extensao = os.path.splitext(nome_original)[1].lower()
     if extensao not in ALLOWED_IMAGE_EXTENSIONS:
-        extensao = '.jpg'
-    nome_unico = f"{prefixo}_{uuid.uuid4().hex}{extensao}"
-    arquivo.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_unico))
-    return nome_unico
+        raise ValueError('Formato de imagem não permitido. Use JPG, PNG, GIF ou WEBP.')
+
+    tipo = (getattr(arquivo, 'mimetype', '') or '').lower()
+    if tipo and not tipo.startswith('image/'):
+        raise ValueError('O arquivo enviado não parece ser uma imagem válida.')
+
+    nome_unico = f"{prefixo}_{uuid.uuid4().hex}"
+
+    if CLOUDINARY_URL:
+        try:
+            import cloudinary
+            import cloudinary.uploader
+
+            # O SDK lê as credenciais de CLOUDINARY_URL no ambiente.
+            cloudinary.config(secure=True)
+            arquivo.stream.seek(0)
+            resultado = cloudinary.uploader.upload(
+                arquivo.stream,
+                folder='checkkids',
+                public_id=nome_unico,
+                resource_type='image',
+                overwrite=False,
+                transformation=[
+                    {'width': 1200, 'height': 1200, 'crop': 'limit'},
+                    {'quality': 'auto', 'fetch_format': 'auto'}
+                ]
+            )
+            return f"cloudinary:{resultado['public_id']}"
+        except Exception as erro:
+            print('[UPLOAD] Falha ao enviar imagem para Cloudinary:', repr(erro))
+            raise RuntimeError(
+                'Não foi possível armazenar a imagem no Cloudinary. '
+                'Confira CLOUDINARY_URL e tente novamente.'
+            ) from erro
+
+    # O filesystem padrão do Render é temporário. Bloqueia novos uploads nesse
+    # cenário para não informar sucesso e perder a imagem no próximo restart.
+    if os.getenv('RENDER') and not CLOUDINARY_URL and (not UPLOAD_FOLDER_CONFIG or not os.path.isabs(UPLOAD_FOLDER_CONFIG)):
+        raise RuntimeError(
+            'O armazenamento permanente de fotos ainda não foi configurado. '
+            'Configure CLOUDINARY_URL no Render ou conecte um Persistent Disk '
+            'e defina UPLOAD_FOLDER=/var/data/uploads.'
+        )
+
+    nome_arquivo = nome_unico + extensao
+    destino = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo)
+    arquivo.stream.seek(0)
+    arquivo.save(destino)
+    return nome_arquivo
+
+
+@app.template_global('url_foto')
+def url_foto(referencia):
+    """Converte uma referência de foto antiga/local/Cloudinary em URL exibível."""
+    if not referencia or str(referencia).strip() in {'default.png', 'None'}:
+        return url_for('static', filename='img/avatar-default.svg')
+
+    referencia = str(referencia).strip()
+    if referencia.startswith(('https://', 'http://')):
+        return referencia
+
+    if referencia.startswith('cloudinary:'):
+        public_id = referencia.split(':', 1)[1].strip()
+        cloud_url = os.getenv('CLOUDINARY_URL', '').strip()
+        cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME', '').strip()
+        if not cloud_name and cloud_url:
+            cloud_name = urlparse(cloud_url).hostname or ''
+        if not cloud_name or not public_id:
+            return url_for('static', filename='img/avatar-default.svg')
+        public_id_url = quote(public_id, safe='/')
+        return (
+            f'https://res.cloudinary.com/{cloud_name}/image/upload/'
+            f'c_fill,g_auto,w_640,h_640,q_auto,f_auto/{public_id_url}'
+        )
+
+    # Compatibilidade com imagens salvas pelas versões anteriores.
+    return url_for('uploaded_file', filename=referencia)
+
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """Serve fotos locais antigas e fotos gravadas em disco persistente."""
+    caminho = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.isfile(caminho):
+        return redirect(url_for('static', filename='img/avatar-default.svg'))
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 def formatar_mes_codigo(mes_codigo):
     try:
@@ -496,10 +590,13 @@ def finalizar_cadastro():
             request.form.get('whatsapp_opt_in') == 'on'
         )
 
-        foto_nome = salvar_foto(
-            request.files.get('foto'),
-            'responsavel'
-        )
+        try:
+            foto_nome = salvar_foto(request.files.get('foto'), 'responsavel')
+        except (ValueError, RuntimeError) as erro:
+            flash(str(erro), 'danger')
+            return redirect(url_for('finalizar_cadastro'))
+
+        current_user.foto_perfil = foto_nome
 
         responsavel_principal = Responsavel(
             usuario_id=current_user.id,
@@ -582,11 +679,16 @@ def cadastro_professor_perfil():
         current_user.telefone = request.form.get('telefone')
         current_user.cep = request.form.get('cep')
         
-        # Lógica para salvar a foto (se enviada)
+        # Salva a foto do perfil em armazenamento persistente quando configurado.
         foto = request.files.get('foto')
         if foto and foto.filename:
-            current_user.foto_perfil = salvar_foto(foto, 'professor')
-            
+            try:
+                current_user.foto_perfil = salvar_foto(foto, 'professor')
+            except (ValueError, RuntimeError) as erro:
+                db.session.rollback()
+                flash(str(erro), 'danger')
+                return redirect(url_for('cadastro_professor_perfil'))
+
         db.session.commit()
         flash('Perfil de professor cadastrado com sucesso!', 'success')
         
@@ -1096,26 +1198,45 @@ def politica_privacidade():
 @app.route('/minha_conta', methods=['GET', 'POST'])
 @login_required
 def minha_conta():
+    responsavel = Responsavel.query.filter_by(usuario_id=current_user.id).first()
+
     if request.method == 'POST':
-        current_user.nome = request.form.get('nome')
-        current_user.telefone = request.form.get('telefone')
+        foto = request.files.get('foto')
+        nova_foto = None
+        if foto and foto.filename:
+            try:
+                nova_foto = salvar_foto(foto, 'responsavel' if not current_user.is_professor else 'usuario')
+            except (ValueError, RuntimeError) as erro:
+                flash(str(erro), 'danger')
+                return redirect(url_for('minha_conta'))
 
-        responsavel = Responsavel.query.filter_by(
-            usuario_id=current_user.id
-        ).first()
+        current_user.nome = request.form.get('nome', '').strip() or current_user.nome
+        current_user.telefone = request.form.get('telefone', '').strip() or None
 
-        if responsavel and current_user.telefone:
-            responsavel.telefone = current_user.telefone
+        if responsavel:
+            responsavel.nome = current_user.nome
+            responsavel.telefone = current_user.telefone or responsavel.telefone
+            if nova_foto:
+                responsavel.foto_url = nova_foto
+
+        if nova_foto:
+            current_user.foto_perfil = nova_foto
 
         db.session.commit()
-        return redirect(url_for('configuracoes'))
-    return render_template('minha_conta.html')
+        flash('Seus dados e sua foto de perfil foram atualizados.', 'success')
+        return redirect(url_for('minha_conta'))
+
+    return render_template('minha_conta.html', responsavel=responsavel)
 
 @app.route('/adicionar_responsavel', methods=['GET', 'POST'])
 @login_required
 def adicionar_responsavel():
     if request.method == 'POST':
-        foto_nome = salvar_foto(request.files.get('foto'), 'responsavel')
+        try:
+            foto_nome = salvar_foto(request.files.get('foto'), 'responsavel')
+        except (ValueError, RuntimeError) as erro:
+            flash(str(erro), 'danger')
+            return redirect(url_for('adicionar_responsavel'))
 
         novo_responsavel = Responsavel(
             usuario_id=current_user.id,
@@ -1130,6 +1251,8 @@ def adicionar_responsavel():
             whatsapp_opt_in=request.form.get('whatsapp_opt_in') == 'on'
         )
         db.session.add(novo_responsavel)
+        if foto_nome != 'default.png':
+            current_user.foto_perfil = foto_nome
         db.session.commit()
         return redirect(url_for('dashboard'))
         
@@ -1162,7 +1285,11 @@ def cadastrar_crianca():
         if alergia:
             detalhes_saude.append(f'Alergia: {alergia}')
 
-        foto_nome = salvar_foto(request.files.get('foto'), 'crianca')
+        try:
+            foto_nome = salvar_foto(request.files.get('foto'), 'crianca')
+        except (ValueError, RuntimeError) as erro:
+            flash(str(erro), 'danger')
+            return redirect(url_for('cadastrar_crianca'))
 
         nova_crianca = Crianca(
             nome=nome,
@@ -2013,7 +2140,10 @@ def inicializar_banco():
 # INICIALIZAÇÃO AUTOMÁTICA
 # ==========================================================
 
-inicializar_banco()
+# Scripts administrativos (ex.: migração das fotos) podem importar os modelos
+# sem disparar a criação de usuários de teste ou inicialização do banco.
+if os.getenv('CHECKKIDS_SKIP_INIT') != '1':
+    inicializar_banco()
 
 
 # ==========================================================
