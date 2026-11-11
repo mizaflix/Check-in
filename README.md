@@ -1,56 +1,61 @@
 # CheckKids
 
-## Integração Twilio WhatsApp
+Sistema web Flask para gerenciamento de responsáveis, crianças, turmas, check-in/check-out, escala e notificações.
 
-O botão **Chamar Responsável** mantém a notificação interna e, quando houver consentimento do responsável e as credenciais do Twilio estiverem configuradas, envia também um alerta por WhatsApp.
+## Principais recursos desta versão
 
-### Variáveis do Render
+- Painel administrativo com gerenciamento de usuários.
+- Escala geral integrada ao layout administrativo.
+- Atualização automática da contagem de crianças na tela do QR Code, sem recriar o QR.
+- Reabertura de check-in para receber alunos que chegarem depois.
+- Foto de perfil de responsáveis, professores e crianças.
+- Notificações internas e integração opcional com WhatsApp via Evolution API.
 
-Em **Web Service > Environment** configure:
+## Fotos: armazenamento local
 
-```text
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-TWILIO_WHATSAPP_CONTENT_SID=...
+O Cloudinary foi removido do código e das dependências. As novas fotos são salvas localmente em `static/uploads/` por padrão. O banco guarda apenas o nome do arquivo.
+
+No Docker Compose, o diretório `/app/static/uploads` é montado no volume persistente `uploads`. Não apague esse volume ao atualizar o container. Consulte `CONFIGURAR_FOTOS.md` para migrar imagens de outro computador/servidor.
+
+Se a VPS usar um caminho diferente, configure `UPLOAD_FOLDER` no ambiente com um caminho absoluto e persistente.
+
+## Configuração
+
+1. Crie um arquivo `.env` baseado em `.env.example` (ou configure as mesmas variáveis no `stack.env` do Portainer).
+2. Configure `DATABASE_URL` para o PostgreSQL que será utilizado e defina uma `SECRET_KEY` forte.
+3. Instale as dependências com `pip install -r requirements.txt`.
+4. Para executar diretamente, use `gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 120 app:app`.
+
+O `docker-compose.yml` usa a imagem publicada pelo GitHub Actions em `ghcr.io/mizaflix/check-in:latest`. Ao enviar commits para a branch `main`, o workflow `.github/workflows/deploy.yml` constrói a imagem e aciona o webhook do Portainer.
+
+## WhatsApp (Evolution API)
+
+Configure no `.env` ou `stack.env`:
+
+```env
+EVOLUTION_API_URL=https://seu-dominio-da-evolution
+EVOLUTION_API_KEY=sua-chave
+EVOLUTION_INSTANCE=nome-da-instancia
 ```
 
-Para produção, use um WhatsApp Sender registrado no Twilio. O `TWILIO_WHATSAPP_CONTENT_SID` é o SID de um template aprovado e usa as variáveis `{{1}}` = nome da criança e `{{2}}` = nome da sala.
+O alerta interno do CheckKids continua disponível mesmo quando a Evolution API não está configurada. O envio externo depende do consentimento do responsável salvo no sistema.
 
-### Consentimento
+## Backup e migração do banco
 
-Os formulários de cadastro de responsável agora possuem uma opção explícita para autorizar mensagens pelo WhatsApp. Sem o consentimento, o alerta interno continua funcionando e nenhum WhatsApp é enviado.
+O repositório inclui `backup_postgres.py` e `restore_postgres.py` para gerar e restaurar um dump PostgreSQL em formato custom (`.dump`). É necessário ter `pg_dump` e `pg_restore` instalados e `DATABASE_URL` configurada no `.env` ou no ambiente.
 
-### Banco existente
+Gerar backup:
 
-A aplicação verifica a tabela `responsavel` durante a inicialização e cria a coluna `whatsapp_opt_in` quando ela ainda não existir. Também existe o arquivo `migrar_twilio.sql` para executar manualmente no PostgreSQL do Render, caso desejado.
+```bash
+python backup_postgres.py
+```
 
-### Sandbox
+O arquivo será gravado em `backups/`. Para fazer também o backup das imagens locais, execute `python backup_uploads.py` (o ZIP das fotos também ficará em `backups/`). Para restaurar em um banco novo e vazio:
 
-Para testes, a Twilio oferece um ambiente de WhatsApp. Cada destinatário precisa aderir ao Sandbox. Fora da janela de atendimento iniciada pelo usuário, o WhatsApp exige um template aprovado; por isso, para produção, configure `TWILIO_WHATSAPP_CONTENT_SID`.
+```bash
+python restore_postgres.py backups/ARQUIVO.dump --confirm-empty-database
+```
 
-## Atualizações de administração e check-in
+**O ZIP do projeto não contém o `.env` nem a conexão do banco de produção.** Portanto, o dump real do Neon/PostgreSQL deve ser gerado no ambiente que possui a `DATABASE_URL` correta. Um dump do PostgreSQL não inclui as fotos: faça também backup de `static/uploads/` (ou do volume Docker `uploads`) e restaure os arquivos mantendo os nomes.
 
-Esta versão também inclui:
-
-- Painel administrativo redesenhado, com indicadores gerais e atalhos para a escala e os usuários.
-- Gerenciamento administrativo de contas: criar usuários, pesquisar/filtrar, editar nome/e-mail/telefone, alterar perfil e redefinir senha.
-- Exclusão protegida: não permite excluir a própria conta, o último administrador ou contas que ainda tenham vínculo com crianças, responsáveis, notificações ou escalas.
-- Contador de presentes na tela do QR atualizado automaticamente a cada 5 segundos. A atualização consulta somente a contagem e não recria nem altera o conteúdo do QR Code.
-- Ação **Reabrir Check-in** no painel do professor quando a turma está em andamento. Ela volta a aceitar novas entradas usando o mesmo QR Code da turma.
-
-### Publicação
-
-As novas telas e rotas não exigem uma nova coluna no banco de dados. Faça o deploy do código atualizado normalmente no Render. O arquivo `.env`, os bancos locais e as fotos enviadas por usuários não fazem parte do pacote de código; mantenha as variáveis de ambiente e os dados reais somente no ambiente correto.
-## Fotos de perfil e armazenamento permanente
-
-O sistema agora aceita Cloudinary para armazenar fotos de responsáveis, crianças e professores. Configure `CLOUDINARY_URL` no ambiente local e no Render (Environment). O valor pode ser copiado da área **API Keys** do painel Cloudinary. O código grava no PostgreSQL apenas uma referência curta `cloudinary:<public_id>`, e gera a URL de exibição quando necessário.
-
-Para o Render, não deixe uploads no filesystem temporário: sem Cloudinary, conecte um **Persistent Disk** ao serviço e configure `UPLOAD_FOLDER=/var/data/uploads` com o mount path `/var/data`. O caminho é configurável por variável de ambiente.
-
-No computador local, quando `CLOUDINARY_URL` não estiver configurado, as imagens continuam sendo salvas em `static/uploads`.
-
-A página **Minha conta** permite atualizar a foto do responsável. A escala geral do administrador utiliza agora a mesma barra lateral e a identidade visual do painel administrativo.
-
-
-Se ainda existirem cópias das fotos antigas no diretório local `static/uploads`, depois de configurar `DATABASE_URL` e `CLOUDINARY_URL` no `.env`, execute `python migrar_fotos_cloudinary.py`. O script envia os arquivos encontrados e atualiza as referências correspondentes no banco. Arquivos que não existirem localmente são apenas listados, sem apagar registros.
+Leia `BACKUP_E_MIGRACAO.md` antes de migrar o banco para a VPS. A pasta `instance/` é criada automaticamente; bancos SQLite locais não são distribuídos dentro deste ZIP para evitar substituir acidentalmente o banco em uso.

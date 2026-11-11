@@ -18,3 +18,6 @@ venv/
 # Fotos enviadas pelos usuários (armazenamento de dados, não código-fonte)
 static/uploads/*
 !static/uploads/.gitkeep
+
+# Backups locais (contêm dados da aplicação)
+backups/

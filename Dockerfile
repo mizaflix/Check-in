@@ -27,7 +27,7 @@ COPY --from=builder /install /usr/local
 # Copia o código-fonte
 COPY . .
 
-# Pasta de uploads local (caso USE_CLOUDINARY não esteja ativo)
+# Pasta local de uploads; use um volume persistente no Docker Compose
 RUN mkdir -p static/uploads
 
 # Usuário não-root por segurança

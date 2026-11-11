@@ -1,40 +1,62 @@
-# Configurar armazenamento permanente de fotos no CheckKids
+# Fotos locais no CheckKids (VPS)
 
-O sistema aceita duas opções. A recomendada para o CheckKids no Render é Cloudinary.
+O CheckKids voltou a salvar todas as novas fotos diretamente no filesystem. Por padrão, os arquivos ficam em:
 
-## Opção A — Cloudinary (recomendada)
-
-1. Crie/acesse sua conta em https://cloudinary.com/.
-2. No painel, abra **Settings > API Keys** e copie o valor completo de `CLOUDINARY_URL`.
-3. No Render, abra o serviço CheckKids > **Environment**.
-4. Adicione a variável `CLOUDINARY_URL` com o valor copiado. Não coloque esse valor no GitHub.
-5. Salve e faça um novo deploy.
-6. Teste alterando a foto em **Configurações > Minha conta** e cadastrando uma foto de criança.
-
-O aplicativo grava no banco uma referência `cloudinary:<public_id>`, e as imagens são entregues pelo endereço seguro do Cloudinary. Não é necessário criar coluna nova no PostgreSQL.
-
-## Opção B — Persistent Disk do Render
-
-Esta opção exige um plano do Render que permita anexar Persistent Disk.
-
-1. No serviço do CheckKids, abra **Disks** e adicione um disco com mount path `/var/data`.
-2. Em **Environment**, adicione `UPLOAD_FOLDER=/var/data/uploads`.
-3. Salve e faça o deploy.
-
-O diretório informado em `UPLOAD_FOLDER` deve estar dentro do mount path do disco. Só os arquivos gravados dentro do disco são preservados entre reinicializações e deploys.
-
-## Fotos antigas
-
-Se as fotos antigas ainda existirem no seu computador em `static/uploads`, faça primeiro um backup da pasta. Depois, com `DATABASE_URL` apontando para o banco correto e `CLOUDINARY_URL` configurado no `.env` local, execute:
-
-```powershell
-python migrar_fotos_cloudinary.py
+```text
+static/uploads/
 ```
 
-O script tenta enviar os arquivos locais encontrados e atualizar as referências em `Usuario.foto_perfil`, `Responsavel.foto_url` e `Crianca.foto_url`. Fotos cujo arquivo local não existe serão listadas e não serão apagadas do banco. Se o Render já apagou o arquivo original e não existe cópia local, será necessário enviar novamente a foto pelo perfil/cadastro.
+O banco armazena somente o nome do arquivo, por exemplo `crianca_a1b2c3.jpg`. A rota `/uploads/<nome>` entrega a imagem ao navegador.
 
-## Segurança
+## Executando diretamente na VPS
 
-- Nunca envie `.env` para o GitHub ou em um ZIP compartilhado.
-- Use variáveis de ambiente no Render para credenciais.
-- O limite de upload configurado é de 8 MB por requisição.
+1. Garanta que o usuário que executa o Gunicorn tenha permissão de escrita em `static/uploads`.
+2. Crie a pasta, caso ainda não exista:
+
+   ```bash
+   mkdir -p static/uploads
+   ```
+
+3. Se preferir guardar os uploads fora da pasta do código, configure no `.env` um caminho absoluto persistente:
+
+   ```env
+   UPLOAD_FOLDER=/opt/checkkids/uploads
+   ```
+
+4. Reinicie o serviço do CheckKids.
+
+## Executando com Docker Compose / Portainer
+
+O `docker-compose.yml` configura `UPLOAD_FOLDER=/app/static/uploads` e monta o volume nomeado `uploads` nesse caminho. Assim, as fotos permanecem no volume mesmo quando o container é recriado ou atualizado.
+
+Para conferir o nome real do volume no servidor:
+
+```bash
+docker volume ls
+```
+
+Não remova o volume `uploads` ao atualizar o container. Remover o volume apaga as fotos armazenadas nele.
+
+## Migrar fotos que já estão no computador antigo
+
+Antes de desligar o computador/servidor antigo, copie todo o conteúdo de `static/uploads/` para a mesma pasta na VPS (ou para o diretório configurado em `UPLOAD_FOLDER`). Faça a cópia mantendo os nomes originais dos arquivos, pois o banco guarda esses nomes.
+
+Exemplo de cópia via SCP executado no computador antigo:
+
+```bash
+scp -r static/uploads usuario@IP_DA_VPS:/opt/checkkids/static/
+```
+
+Ajuste o usuário, IP e caminho conforme sua VPS. Se usar Docker Compose, copie os arquivos para o volume persistente antes de colocar o sistema em produção.
+
+## Limite e formatos
+
+- Limite configurado: 8 MB por requisição.
+- Formatos aceitos: JPG, JPEG, PNG, GIF e WEBP.
+- Novos arquivos recebem nomes únicos para evitar sobrescrever fotos anteriores.
+
+## Importante sobre fotos da fase Cloudinary
+
+Registros antigos que tenham o identificador `cloudinary:<public_id>` não contêm um arquivo local. O sistema mostra o avatar padrão para esses registros até que a foto seja reenviada ou copiada manualmente para `static/uploads` e o campo correspondente no banco seja atualizado para o nome local do arquivo.
+
+O ZIP do projeto não inclui credenciais `.env` nem bancos de dados de produção. Faça backup separado do banco e da pasta `static/uploads`.

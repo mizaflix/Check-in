@@ -7,8 +7,10 @@ services:
       - "8000:8000"
     env_file:
       - stack.env          # arquivo de variáveis criado dentro do Portainer
+    environment:
+      UPLOAD_FOLDER: /app/static/uploads
     volumes:
-      - uploads:/app/static/uploads   # persistência local de uploads (se não usar Cloudinary)
+      - uploads:/app/static/uploads   # fotos persistentes no volume Docker
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000')"]
       interval: 30s
