@@ -26,8 +26,7 @@ try:
 except ImportError:
     pass
 
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+import urllib.request
 
 
 app = Flask(__name__)
@@ -82,99 +81,91 @@ MESES_PT = [
 ]
 
 # ==========================================================
-# TWILIO / WHATSAPP
+# EVOLUTION API / WHATSAPP
 # ==========================================================
-TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '').strip()
-TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '').strip()
-TWILIO_WHATSAPP_FROM = os.getenv(
-    'TWILIO_WHATSAPP_FROM',
-    'whatsapp:+14155238886'
-).strip()
-TWILIO_WHATSAPP_CONTENT_SID = os.getenv(
-    'TWILIO_WHATSAPP_CONTENT_SID',
-    ''
-).strip()
+EVOLUTION_API_URL      = os.getenv('EVOLUTION_API_URL', '').strip().rstrip('/')
+EVOLUTION_API_KEY      = os.getenv('EVOLUTION_API_KEY', '').strip()
+EVOLUTION_INSTANCE     = os.getenv('EVOLUTION_INSTANCE', '').strip()
 
 
 def normalizar_telefone_brasil(telefone):
-    """Converte telefone brasileiro para E.164 (+55XXXXXXXXXXX)."""
+    """Converte telefone brasileiro para E.164 sem o '+' (55XXXXXXXXXXX)."""
     digitos = re.sub(r'\D', '', telefone or '')
 
     if digitos.startswith('55') and len(digitos) in (12, 13):
-        return '+' + digitos
+        return digitos
 
     if len(digitos) in (10, 11):
-        return '+55' + digitos
+        return '55' + digitos
 
     return None
 
 
-def twilio_configurado():
-    return bool(
-        TWILIO_ACCOUNT_SID
-        and TWILIO_AUTH_TOKEN
-        and TWILIO_WHATSAPP_FROM
-    )
+def evolution_configurado():
+    return bool(EVOLUTION_API_URL and EVOLUTION_API_KEY and EVOLUTION_INSTANCE)
 
 
 def enviar_whatsapp(telefone, nome_crianca, nome_turma):
     """
-    Envia um alerta para o responsável pelo WhatsApp via Twilio.
+    Envia um alerta para o responsável pelo WhatsApp via Evolution API v2.
 
-    Quando TWILIO_WHATSAPP_CONTENT_SID estiver configurado, a mensagem
-    usa um template aprovado com:
-      {{1}} = nome da criança
-      {{2}} = nome da sala
-
-    Sem Content SID, o envio usa texto livre e é indicado somente para
-    uma sessão WhatsApp já aberta (por exemplo, durante testes).
+    Endpoint: POST {EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}
+    Header:   apikey: {EVOLUTION_API_KEY}
+    Body:     { "number": "55...", "text": "..." }
     """
-    if not twilio_configurado():
-        return False, 'Twilio não configurado no ambiente.'
+    if not evolution_configurado():
+        return False, 'Evolution API não configurada no ambiente.'
 
     destino = normalizar_telefone_brasil(telefone)
     if not destino:
         return False, 'Número de WhatsApp inválido ou ausente.'
 
+    texto = (
+        f'🚨 Atenção! O responsável por {nome_crianca} '
+        f'precisa comparecer à sala {nome_turma}. '
+        'Por favor, dirija-se à sala assim que possível.'
+    )
+
+    payload = json.dumps({
+        'number': destino,
+        'text': texto,
+    }).encode('utf-8')
+
+    url = f'{EVOLUTION_API_URL}/message/sendText/{EVOLUTION_INSTANCE}'
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            'Content-Type': 'application/json',
+            'apikey': EVOLUTION_API_KEY,
+        },
+        method='POST',
+    )
+
     try:
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-
-        parametros = {
-            'from_': TWILIO_WHATSAPP_FROM,
-            'to': f'whatsapp:{destino}',
-        }
-
-        if TWILIO_WHATSAPP_CONTENT_SID:
-            parametros['content_sid'] = TWILIO_WHATSAPP_CONTENT_SID
-            parametros['content_variables'] = json.dumps({
-                '1': nome_crianca,
-                '2': nome_turma,
-            }, ensure_ascii=False)
-        else:
-            parametros['body'] = (
-                f'🚨 Atenção! O responsável por {nome_crianca} ' 
-                f'precisa comparecer à sala {nome_turma}. ' 
-                'Por favor, dirija-se à sala assim que possível.'
-            )
-
-        mensagem = client.messages.create(**parametros)
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            corpo = resp.read().decode('utf-8')
+            dados = json.loads(corpo)
 
         print('=' * 60)
-        print('WHATSAPP ENVIADO VIA TWILIO')
+        print('WHATSAPP ENVIADO VIA EVOLUTION API')
         print('Destino:', destino)
-        print('SID:', mensagem.sid)
-        print('Status:', mensagem.status)
+        print('Resposta:', dados)
         print('=' * 60)
 
-        return True, mensagem.sid
+        # Evolution retorna {"key": {"id": "..."}, "status": "PENDING"} em sucesso
+        message_id = (dados.get('key') or {}).get('id') or dados.get('id', 'ok')
+        return True, message_id
 
-    except TwilioRestException as e:
+    except urllib.error.HTTPError as e:
+        corpo = e.read().decode('utf-8', errors='replace')
         print('=' * 60)
-        print('ERRO TWILIO / WHATSAPP')
-        print('Código:', getattr(e, 'code', None))
-        print('Mensagem:', str(e))
+        print('ERRO EVOLUTION API / WHATSAPP')
+        print('Status HTTP:', e.code)
+        print('Corpo:', corpo)
         print('=' * 60)
-        return False, f'Twilio {getattr(e, "code", "")}: {e}'
+        return False, f'HTTP {e.code}: {corpo}'
 
     except Exception as e:
         print('=' * 60)
