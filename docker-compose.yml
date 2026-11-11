@@ -1,0 +1,20 @@
+services:
+  app:
+    image: ghcr.io/mizaflix/check-in:latest
+    container_name: checkin-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - stack.env          # arquivo de variáveis criado dentro do Portainer
+    volumes:
+      - uploads:/app/static/uploads   # persistência local de uploads (se não usar Cloudinary)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  uploads:
