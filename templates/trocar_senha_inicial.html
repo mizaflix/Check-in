@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Defina sua senha | CheckKids</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:#f4f8f6;color:#18332a;font-family:'DM Sans',sans-serif}.card{width:min(100%,460px);background:#fff;border:1px solid #e1ebe6;border-radius:22px;padding:30px;box-shadow:0 18px 48px rgba(20,70,50,.08)}.brand{color:#087f63;font:800 1.25rem 'Manrope',sans-serif;margin-bottom:25px}.icon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:#eaf7f2;color:#087f63;font-size:1.4rem;margin-bottom:18px}h1{font:800 1.55rem 'Manrope',sans-serif;margin:0 0 10px;letter-spacing:-.03em}.subtitle{color:#71817c;font-size:.92rem;line-height:1.55;margin:0 0 22px}.alert{padding:12px 14px;border-radius:11px;margin-bottom:14px;background:#fff0ef;color:#963e3e;font-weight:600;font-size:.86rem}.field{display:block;width:100%;padding:13px 14px;border:1px solid #dce6e1;border-radius:11px;font:500 .95rem 'DM Sans',sans-serif;margin:8px 0 16px;outline:none}.field:focus{border-color:#087f63;box-shadow:0 0 0 3px #087f6318}label{font-size:.85rem;font-weight:700}.hint{font-size:.78rem;color:#71817c;line-height:1.5;margin:-5px 0 18px}.btn{width:100%;border:0;border-radius:11px;padding:14px;background:#087f63;color:white;font:700 .95rem 'DM Sans',sans-serif;cursor:pointer}.logout{display:block;text-align:center;margin-top:18px;color:#71817c;font-size:.85rem;text-decoration:none}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">CheckKids</div>
+    <div class="icon">🔐</div>
+    <h1>Crie sua senha pessoal</h1>
+    <p class="subtitle">Esta conta foi criada pela administração com uma senha inicial. Antes de acessar o CheckKids, defina uma senha pessoal que somente você conheça.</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+    <form method="POST" autocomplete="off">
+      <label for="senha">Nova senha</label>
+      <input class="field" id="senha" name="senha" type="password" minlength="8" autocomplete="new-password" required placeholder="Digite uma senha com pelo menos 8 caracteres">
+      <label for="confirmar_senha">Confirme a nova senha</label>
+      <input class="field" id="confirmar_senha" name="confirmar_senha" type="password" minlength="8" autocomplete="new-password" required placeholder="Digite a senha novamente">
+      <p class="hint">Não reutilize a senha inicial. Use uma senha exclusiva e não a compartilhe.</p>
+      <button class="btn" type="submit">Salvar minha senha e continuar</button>
+    </form>
+    <a class="logout" href="{{ url_for('logout') }}">Sair do sistema</a>
+  </main>
+</body>
+</html>

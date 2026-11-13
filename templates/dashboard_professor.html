@@ -14,7 +14,10 @@
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .logo-area { display: flex; align-items: center; gap: 8px; color: #028c6a; font-size: 1.5rem; }
         .header-title { font-size: 1.4rem; font-weight: 800; color: #028c6a; flex-grow: 1; text-align: center; }
-        .bell-icon { color: #028c6a; font-size: 1.3rem; text-decoration: none; }
+        .header-actions { display: flex; align-items: center; gap: 14px; }
+        .header-icon { color: #028c6a; font-size: 1.2rem; text-decoration: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; background: #f0f8f5; transition: .2s; }
+        .header-icon:hover { background: #e2f2eb; transform: translateY(-1px); }
+        .bell-icon { color: #028c6a; font-size: 1.2rem; text-decoration: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; background: #f0f8f5; }
 
         /* Ilustração */
         .hero-illustration { text-align: center; margin-bottom: 25px; }
@@ -58,7 +61,15 @@
         <div class="header">
             <div class="logo-area"><i class="fa-solid fa-leaf"></i></div>
             <div class="header-title">Bem-vindos</div>
-            <a href="{{ url_for('notificacoes') }}" class="bell-icon" style="position: relative;"><i class="fa-regular fa-bell"></i>{% if qtd_notificacoes %}<span style="position:absolute; top:-8px; right:-10px; min-width:18px; height:18px; padding:0 4px; border-radius:20px; background:#ff7b5a; color:#fff; font-size:.65rem; display:flex; align-items:center; justify-content:center;">{{ qtd_notificacoes }}</span>{% endif %}</a>
+            <div class="header-actions">
+                <a href="{{ url_for('configuracoes') }}" class="header-icon" title="Configurações" aria-label="Abrir configurações">
+                    <i class="fa-solid fa-gear"></i>
+                </a>
+                <a href="{{ url_for('notificacoes') }}" class="bell-icon" style="position: relative;" title="Notificações" aria-label="Abrir notificações">
+                    <i class="fa-regular fa-bell"></i>
+                    {% if qtd_notificacoes %}<span style="position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; padding:0 4px; border-radius:20px; background:#ff7b5a; color:#fff; font-size:.65rem; display:flex; align-items:center; justify-content:center;">{{ qtd_notificacoes }}</span>{% endif %}
+                </a>
+            </div>
         </div>
 
         <div class="hero-illustration">

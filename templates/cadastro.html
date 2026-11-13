@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro - CheckKids</title>
+    <title>Cadastro de responsável - CheckKids</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -14,8 +14,9 @@
             <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" height="30">
         </div>
 
-        <h2 class="text-primary-green">Fazer cadastro</h2>
-        <p style="color: #666; font-size: 14px; margin-bottom: 30px;">Crie sua conta para acessar o sistema</p>
+        <h2 class="text-primary-green">Cadastro de responsável</h2>
+        <p style="color: #666; font-size: 14px; margin-bottom: 18px;">Crie sua conta para cadastrar e acompanhar suas crianças no CheckKids.</p>
+        <div style="background:#edf7f2;border:1px solid #d5eadf;color:#23634f;padding:13px 14px;border-radius:12px;font-size:13px;line-height:1.5;margin-bottom:22px;">Este cadastro é exclusivo para responsáveis. Professores, auxiliares e administradores recebem acesso diretamente pela administração do sistema.</div>
 
         <form action="{{ url_for('cadastro') }}" method="POST">
             <div class="input-group-custom">
@@ -27,15 +28,6 @@
                 <input type="password" name="senha" placeholder="Digite uma senha forte" required>
             </div>
 
-            <p style="font-weight: 600; font-size: 13px; margin-bottom: 10px;">Qual será o seu perfil?</p>
-            <div style="margin-bottom: 30px;">
-                <label style="display: block; margin-bottom: 10px; font-size: 14px;">
-                    <input type="radio" name="perfil" value="responsavel" required> Responsável pela minha criança
-                </label>
-                <label style="display: block; font-size: 14px;">
-                    <input type="radio" name="perfil" value="admin"> Administrativo (Professor/DI)
-                </label>
-            </div>
 
             <button type="submit" class="btn-green">Próximo passo</button>
         </form>

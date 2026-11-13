@@ -293,8 +293,12 @@ class Usuario(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     telefone = db.Column(db.String(20), nullable=True)
     senha_hash = db.Column(db.String(200), nullable=False)
+    # Contas de equipe criadas pela administração precisam trocar a senha inicial.
+    precisa_trocar_senha = db.Column(
+        db.Boolean, nullable=False, default=False, server_default=text('false')
+    )
     
-    is_admin = db.Column(db.Boolean, default=False) # <- ESTE É O ADMIN MASTER
+    is_admin = db.Column(db.Boolean, default=False)
     is_professor = db.Column(db.Boolean, default=False)
     
     # NOVOS CAMPOS DO PERFIL DO PROFESSOR
@@ -420,6 +424,27 @@ def desativar_cache_paginas_autenticadas(response):
     return response
 
 
+@app.before_request
+def exigir_troca_de_senha_inicial():
+    """Bloqueia o restante do sistema até a equipe trocar a senha inicial."""
+    if not current_user.is_authenticated:
+        return None
+
+    if not getattr(current_user, 'precisa_trocar_senha', False):
+        return None
+
+    endpoints_liberados = {
+        'trocar_senha_inicial',
+        'logout',
+        'static',
+        'uploaded_file',
+    }
+    if request.endpoint in endpoints_liberados:
+        return None
+
+    return redirect(url_for('trocar_senha_inicial'))
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(Usuario, int(user_id))
@@ -457,6 +482,8 @@ def login():
 
         if user and check_password_hash(user.senha_hash, senha):
             login_user(user)
+            if getattr(user, 'precisa_trocar_senha', False):
+                return redirect(url_for('trocar_senha_inicial'))
             return redirect(url_for('dashboard'))
         else:
             flash('E-mail ou senha inválidos.', 'danger')
@@ -469,7 +496,9 @@ def cadastro():
 
         email = request.form.get('email', '').strip().lower()
         senha = request.form.get('senha', '')
-        perfil = request.form.get('perfil')
+
+        # O cadastro público cria exclusivamente contas de responsáveis.
+        # Qualquer campo perfil enviado manualmente pelo navegador é ignorado.
 
         # Validação
         if not email or not senha:
@@ -486,16 +515,13 @@ def cadastro():
         try:
             senha_criptografada = generate_password_hash(senha)
 
-            # Mantendo sua regra atual:
-            # perfil "admin" entra no fluxo de professor
-            is_prof = perfil == 'admin'
-
             novo_usuario = Usuario(
                 nome='Novo Usuário',
                 email=email,
                 senha_hash=senha_criptografada,
                 is_admin=False,
-                is_professor=is_prof
+                is_professor=False,
+                precisa_trocar_senha=False
             )
 
             db.session.add(novo_usuario)
@@ -505,9 +531,6 @@ def cadastro():
 
             # Login somente após salvar com sucesso
             login_user(novo_usuario)
-
-            if is_prof:
-                return redirect(url_for('cadastro_professor_perfil'))
 
             return redirect(url_for('finalizar_cadastro'))
 
@@ -569,6 +592,32 @@ def finalizar_cadastro():
 
     return render_template('finalizar_cadastro.html')
 
+@app.route('/trocar-senha-inicial', methods=['GET', 'POST'])
+@login_required
+def trocar_senha_inicial():
+    if not getattr(current_user, 'precisa_trocar_senha', False):
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        senha = request.form.get('senha', '')
+        confirmar = request.form.get('confirmar_senha', '')
+
+        if len(senha) < 8:
+            flash('A nova senha deve ter pelo menos 8 caracteres.', 'danger')
+        elif senha != confirmar:
+            flash('A confirmação da senha não confere.', 'danger')
+        elif check_password_hash(current_user.senha_hash, senha):
+            flash('Escolha uma senha diferente da senha inicial.', 'danger')
+        else:
+            current_user.senha_hash = generate_password_hash(senha)
+            current_user.precisa_trocar_senha = False
+            db.session.commit()
+            flash('Senha atualizada. Bem-vindo(a) ao CheckKids!', 'success')
+            return redirect(url_for('dashboard'))
+
+    return render_template('trocar_senha_inicial.html')
+
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -621,8 +670,12 @@ def marcar_notificacao_lida(notif_id):
 @app.route('/cadastro_professor_perfil', methods=['GET', 'POST'])
 @login_required
 def cadastro_professor_perfil():
+    # Esta tela só complementa o perfil de quem já foi autorizado pelo admin.
+    if not current_user.is_professor and not current_user.is_admin:
+        flash('Somente professores cadastrados pela administração podem acessar esta área.', 'danger')
+        return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
-        current_user.is_professor = True
         current_user.nome = request.form.get('nome')
         current_user.cpf = request.form.get('cpf')
         current_user.data_nascimento = request.form.get('data_nascimento')
@@ -1125,6 +1178,32 @@ def notificacoes():
 def configuracoes():
     return render_template('configuracoes.html')
 
+@app.route('/alterar-senha', methods=['GET', 'POST'])
+@login_required
+def alterar_senha():
+    """Permite ao usuário autenticado trocar sua própria senha."""
+    if request.method == 'POST':
+        senha_atual = request.form.get('senha_atual', '')
+        nova_senha = request.form.get('nova_senha', '')
+        confirmar_senha = request.form.get('confirmar_senha', '')
+
+        if not check_password_hash(current_user.senha_hash, senha_atual):
+            flash('A senha atual não confere.', 'danger')
+        elif len(nova_senha) < 8:
+            flash('A nova senha deve ter pelo menos 8 caracteres.', 'danger')
+        elif nova_senha != confirmar_senha:
+            flash('A confirmação da nova senha não confere.', 'danger')
+        elif check_password_hash(current_user.senha_hash, nova_senha):
+            flash('A nova senha precisa ser diferente da senha atual.', 'danger')
+        else:
+            current_user.senha_hash = generate_password_hash(nova_senha)
+            current_user.precisa_trocar_senha = False
+            db.session.commit()
+            flash('Sua senha foi alterada com sucesso.', 'success')
+            return redirect(url_for('configuracoes'))
+
+    return render_template('alterar_senha.html')
+
 @app.route('/sobre_professores')
 @login_required
 def sobre_professores():
@@ -1430,42 +1509,69 @@ def admin_novo_usuario():
         flash('Acesso negado. Área restrita à administração.', 'danger')
         return redirect(url_for('dashboard'))
 
+    papel_atual = request.form.get('papel', 'professor') if request.method == 'POST' else 'professor'
+
     if request.method == 'POST':
         nome = request.form.get('nome', '').strip()
         email = request.form.get('email', '').strip().lower()
         telefone = request.form.get('telefone', '').strip()
-        senha = request.form.get('senha', '')
-        papel = request.form.get('papel', 'responsavel')
+        senha_form = request.form.get('senha', '')
+        papel = papel_atual
 
-        if not nome or not email or not senha:
-            flash('Preencha nome, e-mail e senha.', 'danger')
-        elif len(senha) < 6:
-            flash('A senha deve ter pelo menos 6 caracteres.', 'danger')
-        elif papel not in ('responsavel', 'professor', 'auxiliar', 'ambos', 'admin', 'admin_professor'):
+        papeis_validos = ('responsavel', 'professor', 'auxiliar', 'ambos', 'admin', 'admin_professor')
+        is_admin = papel in ('admin', 'admin_professor')
+        is_professor = papel in ('professor', 'auxiliar', 'ambos', 'admin_professor')
+        senha_inicial = ''
+        precisa_trocar = False
+
+        if is_professor and not is_admin:
+            # A senha padrão é mantida no .env/ambiente da VPS, nunca no código.
+            senha_inicial = os.getenv('SENHA_PADRAO_PROFESSOR', '').strip()
+            precisa_trocar = True
+        else:
+            senha_inicial = senha_form
+
+        if not nome or not email:
+            flash('Preencha nome e e-mail.', 'danger')
+        elif papel not in papeis_validos:
             flash('Selecione um perfil válido.', 'danger')
         elif Usuario.query.filter_by(email=email).first():
             flash('Já existe um usuário cadastrado com esse e-mail.', 'danger')
+        elif is_professor and not is_admin and not senha_inicial:
+            flash('Configure SENHA_PADRAO_PROFESSOR no .env/ambiente da VPS antes de criar professores.', 'danger')
+        elif len(senha_inicial) < 8:
+            flash('A senha inicial deve ter pelo menos 8 caracteres.', 'danger')
         else:
-            is_admin = papel in ('admin', 'admin_professor')
-            is_professor = papel in ('professor', 'auxiliar', 'ambos', 'admin_professor')
             funcao = papel if papel in ('professor', 'auxiliar', 'ambos') else ('ambos' if papel == 'admin_professor' else 'responsavel')
             usuario = Usuario(
                 nome=nome,
                 email=email,
                 telefone=telefone or None,
-                senha_hash=generate_password_hash(senha),
+                senha_hash=generate_password_hash(senha_inicial),
                 is_admin=is_admin,
                 is_professor=is_professor,
                 funcao_papeis=funcao,
-                pode_editar_escala=False
+                pode_editar_escala=False,
+                precisa_trocar_senha=precisa_trocar
             )
             db.session.add(usuario)
             db.session.commit()
-            flash(f'Usuário {nome} criado com sucesso.', 'success')
+            if precisa_trocar:
+                flash(
+                    f'Conta de {nome} criada. Entregue ao professor a senha inicial configurada no servidor; '
+                    'ele deverá trocá-la no primeiro acesso.',
+                    'success'
+                )
+            else:
+                flash(f'Usuário {nome} criado com sucesso.', 'success')
             return redirect(url_for('admin_usuarios'))
 
-    return render_template('admin_usuario_form.html', usuario=None, papel_atual='responsavel')
-
+    return render_template(
+        'admin_usuario_form.html',
+        usuario=None,
+        papel_atual=papel_atual,
+        senha_padrao_professor_configurada=bool(os.getenv('SENHA_PADRAO_PROFESSOR', '').strip())
+    )
 
 @app.route('/admin/usuarios/<int:usuario_id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -1483,6 +1589,7 @@ def admin_editar_usuario(usuario_id):
         telefone = request.form.get('telefone', '').strip()
         nova_senha = request.form.get('senha', '')
         papel = request.form.get('papel', papel_atual)
+        era_professor = bool(usuario.is_professor)
 
         email_existente = Usuario.query.filter(Usuario.email == email, Usuario.id != usuario.id).first() if email else None
         papeis_validos = ('responsavel', 'professor', 'auxiliar', 'ambos', 'admin', 'admin_professor')
@@ -1495,8 +1602,10 @@ def admin_editar_usuario(usuario_id):
             flash('Esse e-mail já está sendo usado por outra conta.', 'danger')
         elif papel not in papeis_validos:
             flash('Selecione um perfil válido.', 'danger')
-        elif nova_senha and len(nova_senha) < 6:
-            flash('A nova senha deve ter pelo menos 6 caracteres.', 'danger')
+        elif nova_senha and len(nova_senha) < 8:
+            flash('A nova senha deve ter pelo menos 8 caracteres.', 'danger')
+        elif novo_professor and not novo_admin and not era_professor and len(os.getenv('SENHA_PADRAO_PROFESSOR', '').strip()) < 8:
+            flash('Configure SENHA_PADRAO_PROFESSOR com pelo menos 8 caracteres no ambiente da VPS antes de transformar esta conta em professor.', 'danger')
         elif usuario.id == current_user.id and not novo_admin:
             flash('Por segurança, você não pode remover seu próprio acesso administrativo.', 'danger')
         elif usuario.is_admin and not novo_admin and Usuario.query.filter_by(is_admin=True).count() <= 1:
@@ -1510,8 +1619,19 @@ def admin_editar_usuario(usuario_id):
             usuario.is_admin = novo_admin
             usuario.is_professor = novo_professor
             usuario.funcao_papeis = papel if papel in ('professor', 'auxiliar', 'ambos') else ('ambos' if papel == 'admin_professor' else 'responsavel')
-            if nova_senha:
+            if novo_professor and not novo_admin:
+                if nova_senha:
+                    usuario.senha_hash = generate_password_hash(nova_senha)
+                    usuario.precisa_trocar_senha = True
+                elif not era_professor:
+                    senha_padrao = os.getenv('SENHA_PADRAO_PROFESSOR', '').strip()
+                    usuario.senha_hash = generate_password_hash(senha_padrao)
+                    usuario.precisa_trocar_senha = True
+            elif nova_senha:
                 usuario.senha_hash = generate_password_hash(nova_senha)
+                usuario.precisa_trocar_senha = False
+            elif not novo_professor:
+                usuario.precisa_trocar_senha = False
 
             # Mantém os dados básicos de contato sincronizados para perfis de responsável já existentes.
             responsaveis_vinculados = Responsavel.query.filter_by(usuario_id=usuario.id).all()
@@ -1879,6 +1999,13 @@ def perfil_professor():
 # GERAÇÃO DE DADOS DE TESTE
 # ==========================================
 def criar_usuario_teste():
+    # Não cria contas públicas/de equipe com senha conhecida em produção.
+    # Para desenvolvimento isolado, habilite explicitamente no ambiente.
+    habilitado = os.getenv('CRIAR_USUARIOS_TESTE', 'false').strip().lower() in ('1', 'true', 'yes', 'sim')
+    if not habilitado:
+        print('Criação automática de usuários de teste desativada.')
+        return
+
     try:
         # ==========================================
         # USUÁRIO RESPONSÁVEL DE TESTE
@@ -1929,6 +2056,24 @@ def criar_usuario_teste():
     except Exception as e:
         db.session.rollback()
         print("Erro ao criar contas de teste:", repr(e))
+
+def proteger_contas_de_teste_antigas():
+    """Força a troca de senhas conhecidas das contas de teste criadas por versões antigas."""
+    if os.getenv('CRIAR_USUARIOS_TESTE', 'false').strip().lower() in ('1', 'true', 'yes', 'sim'):
+        return
+
+    emails_teste = ('teste@ipjardim.com', 'professor@ipjardim.com')
+    alterados = 0
+    for email in emails_teste:
+        usuario = Usuario.query.filter_by(email=email).first()
+        if usuario and check_password_hash(usuario.senha_hash, '123456'):
+            usuario.precisa_trocar_senha = True
+            alterados += 1
+
+    if alterados:
+        db.session.commit()
+        print(f'{alterados} conta(s) de teste antiga(s) exigirão troca de senha no próximo acesso.')
+
 
 def configurar_sqlite():
     """
@@ -2003,33 +2148,59 @@ def configurar_sqlite():
 # ==========================================================
 
 def garantir_coluna_whatsapp_opt_in():
-    """Garante a coluna de consentimento nas tabelas usuario e responsavel em bancos já existentes."""
+    """Garante a coluna de consentimento no banco já existente."""
     inspector = inspect(db.engine)
-    tabelas_existentes = set(inspector.get_table_names())
 
-    for tabela in ('usuario', 'responsavel'):
-        if tabela not in tabelas_existentes:
-            continue
+    if 'responsavel' not in inspector.get_table_names():
+        return
 
-        colunas = {col['name'] for col in inspector.get_columns(tabela)}
-        if 'whatsapp_opt_in' in colunas:
-            continue
+    colunas = {col['name'] for col in inspector.get_columns('responsavel')}
 
-        if db.engine.dialect.name == 'postgresql':
-            comando = (
-                f'ALTER TABLE {tabela} '
-                'ADD COLUMN IF NOT EXISTS whatsapp_opt_in BOOLEAN NOT NULL DEFAULT FALSE'
-            )
-        else:
-            comando = (
-                f'ALTER TABLE {tabela} '
-                'ADD COLUMN whatsapp_opt_in BOOLEAN NOT NULL DEFAULT 0'
-            )
+    if 'whatsapp_opt_in' in colunas:
+        return
 
-        with db.engine.begin() as conn:
-            conn.execute(text(comando))
+    if db.engine.dialect.name == 'postgresql':
+        comando = (
+            'ALTER TABLE responsavel ' 
+            'ADD COLUMN IF NOT EXISTS whatsapp_opt_in BOOLEAN NOT NULL DEFAULT FALSE'
+        )
+    else:
+        comando = (
+            'ALTER TABLE responsavel ' 
+            'ADD COLUMN whatsapp_opt_in BOOLEAN NOT NULL DEFAULT 0'
+        )
 
-        print(f'Coluna {tabela}.whatsapp_opt_in criada.')
+    with db.engine.begin() as conn:
+        conn.execute(text(comando))
+
+    print('Coluna responsavel.whatsapp_opt_in criada.')
+
+
+def garantir_coluna_precisa_trocar_senha():
+    """Adiciona o controle de troca obrigatória sem apagar os usuários atuais."""
+    inspector = inspect(db.engine)
+    if 'usuario' not in inspector.get_table_names():
+        return
+
+    colunas = {col['name'] for col in inspector.get_columns('usuario')}
+    if 'precisa_trocar_senha' in colunas:
+        return
+
+    if db.engine.dialect.name == 'postgresql':
+        comando = (
+            'ALTER TABLE usuario ADD COLUMN IF NOT EXISTS '
+            'precisa_trocar_senha BOOLEAN NOT NULL DEFAULT FALSE'
+        )
+    else:
+        comando = (
+            'ALTER TABLE usuario ADD COLUMN precisa_trocar_senha '
+            'BOOLEAN NOT NULL DEFAULT 0'
+        )
+
+    with db.engine.begin() as conn:
+        conn.execute(text(comando))
+
+    print('Coluna usuario.precisa_trocar_senha criada.')
 
 
 # ==========================================================
@@ -2038,16 +2209,12 @@ def garantir_coluna_whatsapp_opt_in():
 
 def inicializar_banco():
     """
-    Inicializa o banco de dados tanto localmente quanto no Render.
+    Inicializa o banco de dados localmente ou no servidor.
 
-    No PostgreSQL:
-    - cria as tabelas caso não existam;
-    - cria os usuários de teste.
-
-    No SQLite:
-    - configura o SQLite;
-    - cria as tabelas;
-    - cria os usuários de teste.
+    - configura SQLite quando utilizado;
+    - cria tabelas ainda inexistentes;
+    - aplica migrações compatíveis com bancos existentes;
+    - usuários de teste só são criados com CRIAR_USUARIOS_TESTE=true.
     """
 
     print("=" * 60)
@@ -2064,17 +2231,17 @@ def inicializar_banco():
             # Cria as tabelas definidas nos modelos
             db.create_all()
 
-            # Adapta a tabela Responsavel em bancos antigos.
+            # Adapta tabelas existentes sem remover dados.
             garantir_coluna_whatsapp_opt_in()
+            garantir_coluna_precisa_trocar_senha()
 
             print("Tabelas verificadas/criadas com sucesso.")
 
             # Cria usuários de teste
             criar_usuario_teste()
+            proteger_contas_de_teste_antigas()
 
-            print(
-                "Usuários de teste verificados/criados com sucesso."
-            )
+            print("Rotina opcional de usuários de teste concluída.")
 
     except Exception as e:
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#087f63">
+    <title>Alterar senha - CheckKids</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        *{box-sizing:border-box}body{margin:0;padding:22px 14px;min-height:100vh;background:#f1f6f3;color:#20332d;font-family:'DM Sans',sans-serif;display:flex;justify-content:center;align-items:flex-start}
+        .card{width:100%;max-width:480px;background:#fff;border:1px solid #e5eee9;border-radius:22px;padding:25px;box-shadow:0 12px 38px rgba(18,75,54,.06)}
+        header{display:flex;align-items:center;gap:13px;margin-bottom:23px}.back{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#eaf7f2;color:#087f63;text-decoration:none}.title{font:800 1.25rem 'Manrope',sans-serif;margin:0}.sub{font-size:.84rem;color:#7b8b84;margin:5px 0 0}
+        .flash-list{display:grid;gap:8px;margin-bottom:16px}.alert{padding:11px 13px;border-radius:11px;font-size:.86rem}.alert-success{background:#eaf7f0;color:#17664e}.alert-danger,.alert-error{background:#fff0ef;color:#963e3e}.alert-warning{background:#fff8e8;color:#885f1e}
+        .field{margin-bottom:17px}.field label{display:block;font-size:.83rem;font-weight:700;color:#60736b;margin-bottom:7px}.field input{width:100%;padding:13px 14px;border:1px solid #dce8e2;border-radius:11px;font:500 .95rem 'DM Sans',sans-serif;outline:0;background:#fbfdfc}.field input:focus{border-color:#087f63;box-shadow:0 0 0 3px rgba(8,127,99,.08)}
+        .hint{font-size:.78rem;color:#82918a;margin:-4px 0 19px}.submit{width:100%;padding:14px 18px;border:0;border-radius:12px;background:#087f63;color:white;font:700 .95rem 'DM Sans',sans-serif;cursor:pointer}.submit:hover{background:#05644f}
+    </style>
+</head>
+<body>
+    <main class="card">
+        <header><a href="{{ url_for('configuracoes') }}" class="back" aria-label="Voltar"><i class="fa-solid fa-arrow-left"></i></a><div><h1 class="title">Alterar senha</h1><p class="sub">Escolha uma senha nova para sua conta.</p></div></header>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}<div class="flash-list">{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('alterar_senha') }}" autocomplete="off">
+            <div class="field"><label for="senha_atual">Senha atual</label><input id="senha_atual" name="senha_atual" type="password" required autocomplete="current-password"></div>
+            <div class="field"><label for="nova_senha">Nova senha</label><input id="nova_senha" name="nova_senha" type="password" minlength="8" required autocomplete="new-password"></div>
+            <div class="field"><label for="confirmar_senha">Confirmar nova senha</label><input id="confirmar_senha" name="confirmar_senha" type="password" minlength="8" required autocomplete="new-password"></div>
+            <p class="hint"><i class="fa-solid fa-shield-halved"></i> Utilize pelo menos 8 caracteres.</p>
+            <button class="submit" type="submit"><i class="fa-solid fa-check"></i> Salvar nova senha</button>
+        </form>
+    </main>
+</body>
+</html>

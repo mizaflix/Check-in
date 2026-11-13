@@ -11,7 +11,7 @@
 </head>
 <body><div class="layout">
     <aside class="sidebar"><div class="brand"><span class="brand-icon"><i class="fa-solid fa-leaf"></i></span> CheckKids</div><div class="nav-label">Administração</div><ul class="menu"><li><a href="{{ url_for('admin_dashboard') }}"><i class="fa-solid fa-chart-line"></i> Visão geral</a></li><li><a class="active" href="{{ url_for('admin_usuarios') }}"><i class="fa-solid fa-users-gear"></i> Usuários</a></li><li><a href="{{ url_for('admin_escala') }}"><i class="fa-regular fa-calendar-days"></i> Escala geral</a></li></ul><div class="sidebar-bottom"><ul class="menu"><li><a href="{{ url_for('logout') }}"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair do sistema</a></li></ul></div></aside>
-    <main class="main"><p class="eyebrow">Contas e permissões</p><h1>{{ 'Editar usuário' if usuario else 'Cadastrar usuário' }}</h1><p class="subtitle">{{ 'Atualize os dados, o perfil de acesso ou redefina a senha da conta.' if usuario else 'Crie uma conta e defina o acesso inicial ao CheckKids.' }}</p>
+    <main class="main"><p class="eyebrow">Contas e permissões</p><h1>{{ 'Editar usuário' if usuario else 'Cadastrar usuário' }}</h1><p class="subtitle">{{ 'Atualize os dados, o perfil de acesso ou redefina a senha da conta.' if usuario else 'Cadastre responsáveis, professores ou auxiliares. Somente administradores podem criar contas por esta página.' }}</p>
         {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
         <section class="card"><form method="POST" action="{{ url_for('admin_editar_usuario', usuario_id=usuario.id) if usuario else url_for('admin_novo_usuario') }}">
             <div class="form-grid">
@@ -21,9 +21,39 @@
                 <div class="group"><label for="papel">Perfil de acesso *</label><select class="field" id="papel" name="papel" required><option value="responsavel" {% if papel_atual=='responsavel' %}selected{% endif %}>Responsável</option><option value="professor" {% if papel_atual=='professor' %}selected{% endif %}>Professor</option><option value="auxiliar" {% if papel_atual=='auxiliar' %}selected{% endif %}>Auxiliar</option><option value="ambos" {% if papel_atual=='ambos' %}selected{% endif %}>Professor e auxiliar</option><option value="admin" {% if papel_atual=='admin' %}selected{% endif %}>Administrador</option><option value="admin_professor" {% if papel_atual=='admin_professor' %}selected{% endif %}>Administrador + equipe</option></select><span class="hint">Administradores têm acesso ao painel administrativo. Professores e auxiliares acessam as turmas atribuídas.</span></div>
                 <hr class="separator">
                 <div class="password-title">{{ 'Alterar senha' if usuario else 'Senha inicial' }}</div>
-                <div class="password-box"><div class="group"><label for="senha">{{ 'Nova senha (opcional)' if usuario else 'Senha *' }}</label><input class="field" id="senha" name="senha" type="password" minlength="6" {% if not usuario %}required{% endif %} autocomplete="new-password" placeholder="Mínimo de 6 caracteres"><span class="hint">{% if usuario %}Deixe em branco para manter a senha atual.{% else %}O usuário poderá usar esta senha no primeiro acesso.{% endif %}</span></div></div>
+                <div class="password-box" id="senhaManualBox"><div class="group"><label for="senha">{{ 'Nova senha (opcional)' if usuario else 'Senha inicial *' }}</label><input class="field" id="senha" name="senha" type="password" minlength="8" {% if not usuario %}required{% endif %} autocomplete="new-password" placeholder="Mínimo de 8 caracteres"><span class="hint">{% if usuario %}Deixe em branco para manter a senha atual.{% else %}Para responsáveis e administradores, defina uma senha individual.{% endif %}</span></div></div>
+                {% if not usuario %}
+                <div class="password-box" id="senhaPadraoBox" style="display:none;background:#edf7f2;border-color:#d5eadf;">
+                    <div class="group">
+                        <strong style="color:var(--green);"><i class="fa-solid fa-shield-halved"></i> Senha inicial padrão da equipe</strong>
+                        <span class="hint">Professores e auxiliares recebem a senha definida pela administração na variável <code>SENHA_PADRAO_PROFESSOR</code>. No primeiro acesso, serão obrigados a cadastrar uma senha própria.</span>
+                        {% if not senha_padrao_professor_configurada %}<span class="hint" style="color:#9b4c2e;font-weight:800;">A senha ainda não foi configurada no ambiente do servidor. Cadastre-a antes de criar a conta.</span>{% else %}<span class="hint" style="font-weight:800;color:var(--green);">Senha padrão configurada no servidor.</span>{% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
             <div class="actions"><a class="btn soft" href="{{ url_for('admin_usuarios') }}"><i class="fa-solid fa-arrow-left"></i> Voltar para usuários</a><button class="btn primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> {{ 'Salvar alterações' if usuario else 'Criar usuário' }}</button></div>
         </form></section>
     </main>
-</div></body></html>
+</div>
+{% if not usuario %}
+<script>
+(function () {
+    const perfil = document.getElementById('papel');
+    const senhaBox = document.getElementById('senhaManualBox');
+    const senhaPadraoBox = document.getElementById('senhaPadraoBox');
+    const senha = document.getElementById('senha');
+    if (!perfil || !senhaBox || !senhaPadraoBox || !senha) return;
+    function atualizarSenha() {
+        const usaSenhaPadrao = ['professor', 'auxiliar', 'ambos'].includes(perfil.value);
+        senhaBox.style.display = usaSenhaPadrao ? 'none' : 'grid';
+        senhaPadraoBox.style.display = usaSenhaPadrao ? 'grid' : 'none';
+        senha.required = !usaSenhaPadrao;
+        if (usaSenhaPadrao) senha.value = '';
+    }
+    perfil.addEventListener('change', atualizarSenha);
+    atualizarSenha();
+})();
+</script>
+{% endif %}
+</body></html>

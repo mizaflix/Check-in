@@ -1,29 +1,16 @@
 services:
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Aplicação Principal (CheckKids)
-  # ─────────────────────────────────────────────────────────────────────────────
   app:
     image: ghcr.io/mizaflix/check-in:latest
     container_name: checkin-app
     restart: unless-stopped
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     env_file:
-      - stack.env
+      - stack.env          # arquivo de variáveis criado dentro do Portainer
     environment:
       UPLOAD_FOLDER: /app/static/uploads
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-checkkids}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-checkkids}}
-      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://evolution-api:8080}
-      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
-      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-checkkids}
     volumes:
-      - uploads:/app/static/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - ingress
-      - backend
+      - uploads:/app/static/uploads   # fotos persistentes no volume Docker
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000')"]
       interval: 30s
@@ -31,132 +18,5 @@ services:
       retries: 3
       start_period: 20s
 
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Banco de Dados PostgreSQL (Isolado na rede backend)
-  # ─────────────────────────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: checkin-postgres
-    restart: unless-stopped
-    expose:
-      - "5432"
-    env_file:
-      - stack.env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-checkkids}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB:-checkkids}
-      EVOLUTION_DB_NAME: ${EVOLUTION_DB_NAME:-evolution}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER:-checkkids} -d $${POSTGRES_DB:-checkkids} && (psql -U $${POSTGRES_USER:-checkkids} -d $${POSTGRES_DB:-checkkids} -tc \"SELECT 1 FROM pg_database WHERE datname = '$${EVOLUTION_DB_NAME:-evolution}'\" | grep -q 1 || psql -U $${POSTGRES_USER:-checkkids} -d $${POSTGRES_DB:-checkkids} -c \"CREATE DATABASE $${EVOLUTION_DB_NAME:-evolution}\")"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # pgAdmin 4 (Interface Web via ingress + acesso ao banco via backend)
-  # ─────────────────────────────────────────────────────────────────────────────
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: checkin-pgadmin
-    restart: unless-stopped
-    expose:
-      - "80"
-    env_file:
-      - stack.env
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-      PGADMIN_LISTEN_PORT: "80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - ingress
-      - backend
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Redis (Cache e filas da Evolution API - Isolado na rede backend)
-  # ─────────────────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: checkin-redis
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    expose:
-      - "6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Evolution API v2 (Acesso externo via ingress + banco/redis via backend)
-  # ─────────────────────────────────────────────────────────────────────────────
-  evolution-api:
-    image: ${EVOLUTION_IMAGE:-atendai/evolution-api:v2.2.3}
-    container_name: checkin-evolution-api
-    restart: unless-stopped
-    expose:
-      - "8080"
-    env_file:
-      - stack.env
-    environment:
-      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://evolution-api:8080}
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
-      DATABASE_ENABLED: "true"
-      DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER:-checkkids}:${POSTGRES_PASSWORD}@postgres:5432/${EVOLUTION_DB_NAME:-evolution}?schema=public
-      DATABASE_CLIENT_NAME: evolution_exchange
-      DATABASE_SAVE_DATA_INSTANCE: "true"
-      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
-      DATABASE_SAVE_MESSAGE_UPDATE: "true"
-      DATABASE_SAVE_DATA_CONTACTS: "true"
-      DATABASE_SAVE_DATA_CHATS: "true"
-      CACHE_REDIS_ENABLED: "true"
-      CACHE_REDIS_URI: redis://redis:6379/6
-      CACHE_REDIS_PREFIX_KEY: evolution
-      CACHE_REDIS_SAVE_INSTANCES: "false"
-      CACHE_LOCAL_ENABLED: "false"
-      DEL_INSTANCE: "false"
-    volumes:
-      - evolution_instances:/evolution/instances
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - ingress
-      - backend
-
 volumes:
   uploads:
-  postgres_data:
-  pgadmin_data:
-  redis_data:
-  evolution_instances:
-
-networks:
-  ingress:
-    name: ingress
-    external: true
-  backend:
-    name: checkin-backend
-    driver: bridge

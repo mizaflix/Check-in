@@ -3,51 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#087f63">
     <title>Configurações - CheckKids</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
-        body { background-color: #f4f4f4; display: flex; justify-content: center; }
-        .app-container { width: 100%; max-width: 414px; min-height: 100vh; background-color: #ffffff; padding: 24px 20px; display: flex; flex-direction: column; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .header-left { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #028c6a; font-size: 1.2rem; font-weight: 800; }
-        
-        .menu-list { display: flex; flex-direction: column; gap: 15px; }
-        .menu-item { display: flex; align-items: center; gap: 15px; padding: 18px; border: 1px solid #edf2f0; border-radius: 16px; text-decoration: none; color: #333; font-weight: 700; font-size: 1rem; transition: background 0.2s;}
-        .menu-item:hover { background-color: #f4faf8; }
-        .menu-item i { color: #028c6a; font-size: 1.2rem; width: 25px; text-align: center; }
-
-        /* Estilo para botão bloqueado */
-        .menu-item.locked { background-color: #f8f9fa; border-color: #e9ecef; color: #adb5bd; cursor: not-allowed; }
-        .menu-item.locked i { color: #adb5bd; }
-        .badge-locked { background: #fce8e6; color: #c92a2a; font-size: 0.7rem; padding: 4px 8px; border-radius: 12px; margin-left: auto; font-weight: 800; }
+        *{box-sizing:border-box;margin:0;padding:0;font-family:'Nunito',sans-serif}
+        body{background:#f1f6f3;display:flex;justify-content:center;min-height:100vh;color:#20332d;padding:18px}
+        .app-container{width:100%;max-width:490px;min-height:calc(100vh - 36px);background:#fff;border:1px solid #e5eee9;border-radius:24px;padding:24px;box-shadow:0 14px 40px rgba(18,75,54,.07)}
+        header{display:flex;align-items:center;gap:13px;margin-bottom:22px}
+        .back{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;text-decoration:none;color:#087f63;background:#eaf7f2;flex-shrink:0}
+        .heading h1{font-size:1.35rem;font-weight:800;color:#20332d}
+        .heading p{font-size:.82rem;color:#71817a;margin-top:2px}
+        .profile-card{display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:linear-gradient(135deg,#eaf7f2,#f7fbf8);margin-bottom:22px}
+        .avatar{width:58px;height:58px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 8px #0b68441c}
+        .profile-card strong{display:block;font-size:1rem}.profile-card span{display:block;color:#71817a;font-size:.8rem;margin-top:3px}
+        .section-label{font-size:.7rem;font-weight:800;color:#91a19a;letter-spacing:.11em;text-transform:uppercase;margin:0 4px 10px}
+        .menu-list{display:grid;gap:10px}
+        .menu-item{display:flex;align-items:center;gap:14px;padding:15px;border:1px solid #e8efeb;border-radius:15px;text-decoration:none;color:#34463f;font-weight:700;font-size:.91rem;transition:.18s;background:#fff}
+        .menu-item:hover{background:#f6fbf8;border-color:#cde5d9;transform:translateY(-1px)}
+        .menu-icon{width:39px;height:39px;border-radius:12px;display:grid;place-items:center;background:#eaf7f2;color:#087f63;font-size:1.05rem;flex-shrink:0}
+        .menu-copy{flex:1}.menu-copy small{display:block;color:#82918a;font-size:.75rem;font-weight:500;margin-top:2px}
+        .chevron{color:#aab7b0;font-size:.8rem}
+        .logout{margin-top:17px;color:#b83e3e;border-color:#f5e4e3}.logout .menu-icon{background:#fff0ef;color:#b83e3e}
+        .flash-list{display:grid;gap:8px;margin-bottom:15px}.alert{padding:11px 13px;border-radius:11px;font-size:.85rem}.alert-success{background:#eaf7f0;color:#17664e}.alert-danger,.alert-error{background:#fff0ef;color:#963e3e}.alert-warning{background:#fff8e8;color:#885f1e}
+        @media(max-width:420px){body{padding:0}.app-container{min-height:100vh;border:0;border-radius:0;padding:22px 18px}}
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <main class="app-container">
         <header>
-            <a href="{% if current_user.is_professor or current_user.is_admin %}{{ url_for('dashboard_professor') }}{% else %}{{ url_for('dashboard') }}{% endif %}" class="header-left"><i class="fa-solid fa-arrow-left"></i> Configurações</a>
-            <i class="fa-solid fa-gear" style="color: #028c6a; font-size: 1.4rem;"></i>
+            <a href="{% if current_user.is_admin %}{{ url_for('admin_dashboard') }}{% elif current_user.is_professor %}{{ url_for('dashboard_professor') }}{% else %}{{ url_for('dashboard') }}{% endif %}" class="back" aria-label="Voltar ao painel"><i class="fa-solid fa-arrow-left"></i></a>
+            <div class="heading"><h1>Configurações</h1><p>Gerencie seus dados e preferências</p></div>
         </header>
 
-        <div class="menu-list">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}<div class="flash-list">{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+        {% endwith %}
+
+        <section class="profile-card">
+            <img class="avatar" src="{{ url_foto(current_user.foto_perfil) }}" alt="Foto de {{ current_user.nome }}">
+            <div><strong>{{ current_user.nome }}</strong><span>{% if current_user.is_admin %}Administrador{% elif current_user.is_professor %}Professor / Auxiliar{% else %}Responsável{% endif %}</span></div>
+        </section>
+
+        <div class="section-label">Minha conta</div>
+        <nav class="menu-list" aria-label="Configurações da conta">
             <a href="{{ url_for('minha_conta') }}" class="menu-item">
-                <i class="fa-solid fa-user-pen"></i> Minha conta e foto de perfil
+                <span class="menu-icon"><i class="fa-solid fa-user-pen"></i></span>
+                <span class="menu-copy">Dados pessoais e foto<small>Atualize seu nome, telefone e imagem de perfil</small></span>
+                <i class="fa-solid fa-chevron-right chevron"></i>
             </a>
+            <a href="{{ url_for('alterar_senha') }}" class="menu-item">
+                <span class="menu-icon"><i class="fa-solid fa-lock"></i></span>
+                <span class="menu-copy">Alterar senha<small>Mantenha sua conta protegida</small></span>
+                <i class="fa-solid fa-chevron-right chevron"></i>
+            </a>
+        </nav>
+
+        <div class="section-label" style="margin-top:24px">Informações e recursos</div>
+        <nav class="menu-list" aria-label="Informações e recursos">
             <a href="{{ url_for('sobre_professores') }}" class="menu-item">
-                <i class="fa-solid fa-chalkboard-user"></i> Sobre os professores
+                <span class="menu-icon"><i class="fa-solid fa-chalkboard-user"></i></span>
+                <span class="menu-copy">Sobre os professores<small>Informações da equipe</small></span>
+                <i class="fa-solid fa-chevron-right chevron"></i>
             </a>
             <a href="{{ url_for('calendario') }}" class="menu-item">
-                <i class="fa-regular fa-calendar-days"></i> Calendário do DI
+                <span class="menu-icon"><i class="fa-regular fa-calendar-days"></i></span>
+                <span class="menu-copy">Calendário do DI<small>Consulte datas e atividades</small></span>
+                <i class="fa-solid fa-chevron-right chevron"></i>
             </a>
             <a href="{{ url_for('politica_privacidade') }}" class="menu-item">
-                <i class="fa-solid fa-shield-halved"></i> Política de privacidade
+                <span class="menu-icon"><i class="fa-solid fa-shield-halved"></i></span>
+                <span class="menu-copy">Política de privacidade<small>Saiba como os dados são utilizados</small></span>
+                <i class="fa-solid fa-chevron-right chevron"></i>
             </a>
-            <a href="{{ url_for('logout') }}" class="menu-item" style="color: #c92a2a; border-color: #fcebeb; margin-top: 20px;">
-                <i class="fa-solid fa-arrow-right-from-bracket" style="color: #c92a2a;"></i> Sair da conta
-            </a>
-        </div>
-    </div>
+        </nav>
+
+        <a href="{{ url_for('logout') }}" class="menu-item logout">
+            <span class="menu-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
+            <span class="menu-copy">Sair da conta<small>Encerrar sua sessão no CheckKids</small></span>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+        </a>
+    </main>
 </body>
 </html>

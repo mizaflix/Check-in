@@ -49,3 +49,7 @@ Ajuste usuário, IP e caminho. Alternativamente, rode `python backup_uploads.py`
 ## 5. Sobre os bancos SQLite que vieram dentro do ZIP enviado
 
 O arquivo recebido tinha `instance/banco.db` e `instance/checkkids.db`. Eles foram copiados para um pacote de backup local separado, mas não há como confirmar que sejam a base PostgreSQL de produção usada pelo Render/Neon. Para migrar os dados atuais do Neon, gere o `.dump` com a `DATABASE_URL` real conforme a etapa 1.
+
+## Atualização de controle de acesso
+
+Na primeira inicialização desta versão, o sistema adiciona automaticamente `usuario.precisa_trocar_senha` quando a coluna ainda não existe. A migração não apaga nem altera os usuários existentes. Para criar professores/auxiliares pelo painel, configure `SENHA_PADRAO_PROFESSOR` no ambiente da VPS antes de cadastrar as contas.

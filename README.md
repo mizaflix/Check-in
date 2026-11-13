@@ -59,3 +59,14 @@ python restore_postgres.py backups/ARQUIVO.dump --confirm-empty-database
 **O ZIP do projeto não contém o `.env` nem a conexão do banco de produção.** Portanto, o dump real do Neon/PostgreSQL deve ser gerado no ambiente que possui a `DATABASE_URL` correta. Um dump do PostgreSQL não inclui as fotos: faça também backup de `static/uploads/` (ou do volume Docker `uploads`) e restaure os arquivos mantendo os nomes.
 
 Leia `BACKUP_E_MIGRACAO.md` antes de migrar o banco para a VPS. A pasta `instance/` é criada automaticamente; bancos SQLite locais não são distribuídos dentro deste ZIP para evitar substituir acidentalmente o banco em uso.
+
+## Cadastro e controle de acesso
+
+- O cadastro público cria somente contas de responsáveis. O servidor ignora qualquer tentativa de enviar um perfil diferente pelo formulário.
+- Professores e auxiliares são criados exclusivamente por um administrador autenticado em **Administração → Usuários → Novo usuário**.
+- Configure `SENHA_PADRAO_PROFESSOR` no `.env` ou no ambiente da VPS. Essa senha é usada ao criar professores/auxiliares; no primeiro login, a pessoa é obrigada a definir uma senha própria antes de acessar qualquer outra tela. Use uma senha forte e compartilhe-a individualmente com cada profissional.
+- A coluna `usuario.precisa_trocar_senha` é adicionada automaticamente aos bancos existentes, sem apagar os usuários atuais.
+- A criação de contas fictícias de teste está desativada por padrão. Não habilite `CRIAR_USUARIOS_TESTE` em produção. Contas antigas `teste@ipjardim.com` e `professor@ipjardim.com` que ainda estejam usando a senha de teste `123456` serão obrigadas a trocá-la no próximo acesso.
+- A página de complementação do perfil de professor não concede mais permissão: somente contas já marcadas como professor/administrador pelo painel administrativo podem acessá-la.
+
+Ao atualizar um banco que já existia, revise **Administração → Usuários** para conferir se contas antigas com perfil de professor continuam autorizadas. Contas já existentes não são rebaixadas automaticamente, para não remover permissões de profissionais legítimos.
