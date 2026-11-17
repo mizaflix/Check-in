@@ -26,6 +26,21 @@
         .health { margin-top: 18px; padding: 13px; border-radius: 12px; background: #fff8e1; color: #664d03; border-left: 4px solid #ffc107; font-size: 0.84rem; line-height: 1.45; }
         .health.clean { background: #f8f9fa; color: #6c757d; border-left-color: #ced4da; }
         .btn-back { display: block; margin-top: 20px; width: 100%; padding: 13px; border-radius: 25px; border: 2px solid #028c6a; color: #028c6a; text-decoration: none; text-align: center; font-weight: 800; }
+        .responsavel-item { display:flex; align-items:center; gap:12px; padding:12px; margin-bottom:10px; border:1px solid #edf2f0; border-radius:14px; background:#fbfdfc; }
+        .responsavel-foto { width:52px; height:52px; flex:0 0 52px; border-radius:50%; object-fit:cover; background:#eef7f4; border:2px solid #eef7f4; }
+        .responsavel-sem-foto { display:flex; justify-content:center; align-items:center; color:#028c6a; font-size:1.2rem; }
+        .responsavel-dados { min-width:0; flex:1; }
+        .responsavel-dados strong { display:block; color:#263b33; overflow-wrap:anywhere; }
+        .responsavel-dados span { display:block; margin-top:3px; color:#7c8984; font-size:.8rem; }
+        .photo-edit-box { margin-top:14px; padding:13px; border:1px dashed #b9d9cc; border-radius:13px; background:#f8fcfa; }
+        .photo-edit-box label { display:block; color:#028c6a; font-weight:800; font-size:.85rem; margin-bottom:9px; cursor:pointer; }
+        .photo-edit-box input[type=file] { width:100%; font-size:.78rem; color:#66756f; margin-bottom:10px; }
+        .photo-save { width:100%; border:0; border-radius:10px; padding:11px; color:#fff; background:#028c6a; font:700 .88rem 'Nunito',sans-serif; cursor:pointer; }
+        .flash-list { display:grid; gap:8px; margin-bottom:14px; }
+        .flash-message { padding:10px 12px; border-radius:10px; font-size:.82rem; background:#eaf7f0; color:#17664e; }
+        .flash-message.danger { background:#fff0ef; color:#963e3e; }
+        .flash-message.warning { background:#fff8e8; color:#885f1e; }
+        .photo-preview { width:74px; height:74px; display:none; object-fit:cover; border-radius:50%; margin:0 auto 10px; border:2px solid #dcefe7; }
     </style>
 </head>
 <body>
@@ -38,19 +53,40 @@
         </div>
 
         <div class="profile-card">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-list">
+                    {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+
             <div class="hero">
                 {% if crianca.foto_url and crianca.foto_url != 'default.png' %}
-                    <img src="{{ url_foto(crianca.foto_url) }}" alt="Foto de {{ crianca.nome }}" class="avatar">
+                    <img src="{{ url_foto(crianca.foto_url) }}" alt="Foto de {{ crianca.nome }}" class="avatar" id="foto-crianca-atual">
                 {% else %}
-                    <div class="avatar" style="display:flex;align-items:center;justify-content:center;color:#028c6a;font-size:1.8rem;">
+                    <div class="avatar" id="foto-crianca-placeholder" style="display:flex;align-items:center;justify-content:center;color:#028c6a;font-size:1.8rem;">
                         <i class="fa-solid fa-child"></i>
                     </div>
+                    <img src="" alt="Pré-visualização da foto de {{ crianca.nome }}" class="avatar" id="foto-crianca-atual" style="display:none;">
                 {% endif %}
                 <div>
                     <div class="name">{{ crianca.nome }}</div>
                     <div class="subtitle">Informações da criança</div>
                 </div>
             </div>
+
+            {% if pode_alterar_foto %}
+            <form class="photo-edit-box" action="{{ url_for('alterar_foto_crianca', crianca_id=crianca.id) }}" method="POST" enctype="multipart/form-data">
+                {% if turma %}<input type="hidden" name="turma_id" value="{{ turma.id }}">{% endif %}
+                <label for="nova-foto-crianca"><i class="fa-solid fa-camera"></i> Alterar foto da criança</label>
+                <img src="" id="foto-crianca-preview" class="photo-preview" alt="Pré-visualização">
+                <input type="file" id="nova-foto-crianca" name="foto" accept="image/jpeg,image/png,image/gif,image/webp" required>
+                <button type="submit" class="photo-save"><i class="fa-solid fa-floppy-disk"></i> Salvar nova foto</button>
+            </form>
+            {% endif %}
 
             <div class="section" style="margin-top:0; padding-top:0; border-top:0;">
                 <h2>Dados pessoais</h2>
@@ -67,16 +103,23 @@
                 {% endif %}
             </div>
 
-            {% if responsavel %}
+            {% if responsaveis %}
             <div class="section">
-                <h2>Responsável</h2>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                    <img src="{{ url_foto(responsavel.foto_url) }}" alt="Foto do responsável" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #eef7f4;">
-                    <strong>{{ responsavel.nome }}</strong>
+                <h2>Responsáveis da família</h2>
+                {% for responsavel_item in responsaveis %}
+                <div class="responsavel-item">
+                    {% if responsavel_item.foto_url and responsavel_item.foto_url != 'default.png' %}
+                        <img src="{{ url_foto(responsavel_item.foto_url) }}" alt="Foto de {{ responsavel_item.nome }}" class="responsavel-foto">
+                    {% else %}
+                        <div class="responsavel-foto responsavel-sem-foto"><i class="fa-solid fa-user"></i></div>
+                    {% endif %}
+                    <div class="responsavel-dados">
+                        <strong>{{ responsavel_item.nome }}</strong>
+                        <span>{{ responsavel_item.vinculo or 'Responsável' }}</span>
+                        <span>{{ responsavel_item.telefone }}</span>
+                    </div>
                 </div>
-                <div class="info-row"><span class="label">Nome</span><span class="value">{{ responsavel.nome }}</span></div>
-                <div class="info-row"><span class="label">Vínculo</span><span class="value">{{ responsavel.vinculo }}</span></div>
-                <div class="info-row"><span class="label">Telefone</span><span class="value">{{ responsavel.telefone }}</span></div>
+                {% endfor %}
             </div>
             {% endif %}
         </div>
@@ -85,5 +128,40 @@
             <i class="fa-solid fa-arrow-left"></i> Voltar para a lista
         </a>
     </div>
+    {% if pode_alterar_foto %}
+    <script>
+        const inputNovaFoto = document.getElementById('nova-foto-crianca');
+        if (inputNovaFoto) {
+            inputNovaFoto.addEventListener('change', function () {
+                const arquivo = this.files && this.files[0];
+                if (!arquivo) return;
+                if (!arquivo.type.startsWith('image/')) {
+                    alert('Selecione um arquivo de imagem.');
+                    this.value = '';
+                    return;
+                }
+                if (arquivo.size > 8 * 1024 * 1024) {
+                    alert('A imagem deve ter no máximo 8 MB.');
+                    this.value = '';
+                    return;
+                }
+                const leitor = new FileReader();
+                leitor.onload = function (evento) {
+                    const preview = document.getElementById('foto-crianca-preview');
+                    const fotoAtual = document.getElementById('foto-crianca-atual');
+                    const placeholder = document.getElementById('foto-crianca-placeholder');
+                    preview.src = evento.target.result;
+                    preview.style.display = 'block';
+                    if (fotoAtual) {
+                        fotoAtual.src = evento.target.result;
+                        fotoAtual.style.display = 'block';
+                    }
+                    if (placeholder) placeholder.style.display = 'none';
+                };
+                leitor.readAsDataURL(arquivo);
+            });
+        }
+    </script>
+    {% endif %}
 </body>
 </html>

@@ -208,9 +208,14 @@
             font-weight: 600;
             border: 1px dashed #ccc;
         }
-        .profile-info { display: flex; align-items: center; gap: 12px; }
-.avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #008f68; }
-.avatar-placeholder { width: 50px; height: 50px; border-radius: 50%; background: #eff6f3; display: flex; justify-content: center; align-items: center; color: #008f68; }
+        .responsaveis-list { display: grid; gap: 10px; margin-bottom: 22px; }
+        .responsavel-card { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #edf1ef; border-radius: 16px; background: #fbfdfc; }
+        .responsavel-avatar { width: 52px; height: 52px; flex: 0 0 52px; border-radius: 50%; object-fit: cover; border: 2px solid #dcefe7; background: #eff6f3; }
+        .responsavel-avatar-placeholder { display: flex; align-items: center; justify-content: center; color: #008f68; font-size: 1.25rem; }
+        .responsavel-info { min-width: 0; flex: 1; }
+        .responsavel-info .user-name { overflow-wrap: anywhere; }
+        .responsavel-meta { margin-top: 3px; color: #888; font-size: .78rem; line-height: 1.35; }
+        .principal-tag { display: inline-block; margin-top: 4px; padding: 2px 7px; border-radius: 20px; background: #eaf6f0; color: #087f63; font-size: .65rem; font-weight: 800; }
 
     </style>
 </head>
@@ -260,17 +265,41 @@
         </a>
         </div>
 
-        <div class="user-profile">
-    <div class="profile-info">
-        <img src="{{ url_foto(current_user.foto_perfil if current_user.foto_perfil and current_user.foto_perfil != 'default.png' else (responsavel.foto_url if responsavel else None)) }}" alt="Foto do Responsável" class="avatar">
-        <div>
-            <p class="welcome-text">Bem-vindo(a),</p>
-            <h2 class="user-name">{{ responsavel.nome if responsavel else current_user.nome }}</h2>
+        <div class="responsaveis-list">
+            {% if responsaveis %}
+                {% for responsavel_item in responsaveis %}
+                <div class="responsavel-card">
+                    {% if responsavel_item.foto_url and responsavel_item.foto_url != 'default.png' %}
+                        <img src="{{ url_foto(responsavel_item.foto_url) }}" alt="Foto de {{ responsavel_item.nome }}" class="responsavel-avatar">
+                    {% else %}
+                        <div class="responsavel-avatar responsavel-avatar-placeholder"><i class="fa-solid fa-user"></i></div>
+                    {% endif %}
+                    <div class="responsavel-info">
+                        <p class="welcome-text">{{ 'Responsável principal' if loop.first else 'Responsável adicional' }}</p>
+                        <h2 class="user-name">{{ responsavel_item.nome }}</h2>
+                        <p class="responsavel-meta">
+                            {% if responsavel_item.vinculo %}{{ responsavel_item.vinculo }}{% endif %}
+                            {% if responsavel_item.telefone %}{% if responsavel_item.vinculo %} · {% endif %}{{ responsavel_item.telefone }}{% endif %}
+                        </p>
+                        {% if loop.first %}<span class="principal-tag">CONTA PRINCIPAL</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="responsavel-card">
+                    {% if current_user.foto_perfil and current_user.foto_perfil != 'default.png' %}
+                        <img src="{{ url_foto(current_user.foto_perfil) }}" alt="Foto de {{ current_user.nome }}" class="responsavel-avatar">
+                    {% else %}
+                        <div class="responsavel-avatar responsavel-avatar-placeholder"><i class="fa-solid fa-user"></i></div>
+                    {% endif %}
+                    <div class="responsavel-info">
+                        <p class="welcome-text">Responsável principal</p>
+                        <h2 class="user-name">{{ current_user.nome }}</h2>
+                        <span class="principal-tag">CONTA PRINCIPAL</span>
+                    </div>
+                </div>
+            {% endif %}
         </div>
-    </div>
-</div>
-
-        <br>
 
         <div class="section-header">
             <h2>Crianças</h2>

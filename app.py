@@ -634,7 +634,14 @@ def dashboard():
     if current_user.is_professor:
         return redirect(url_for('dashboard_professor'))
 
-    responsavel = Responsavel.query.filter_by(usuario_id=current_user.id).first()
+    # Cada registro guarda seu próprio nome e sua própria foto. Não misture
+    # current_user.foto_perfil com dados de responsáveis adicionais.
+    responsaveis = (
+        Responsavel.query
+        .filter_by(usuario_id=current_user.id)
+        .order_by(Responsavel.id.asc())
+        .all()
+    )
     criancas = Crianca.query.filter_by(usuario_id=current_user.id).all()
     
     # Busca alertas urgentes enviados pelos professores para este pai/mãe
@@ -646,7 +653,7 @@ def dashboard():
     
     return render_template(
         'dashboard.html',
-        responsavel=responsavel,
+        responsaveis=responsaveis,
         criancas=criancas,
         alertas=alertas,
         qtd_notificacoes=qtd_notificacoes
@@ -1147,15 +1154,27 @@ def detalhes_crianca(crianca_id):
     else:
         turma = None
 
-    responsavel = Responsavel.query.filter_by(
-        usuario_id=crianca.responsavel_id
-    ).first()
+    # Todos os responsáveis cadastrados na conta familiar são exibidos
+    # com os dados do mesmo registro (nome, foto, vínculo e telefone).
+    responsaveis = (
+        Responsavel.query
+        .filter_by(usuario_id=crianca.responsavel_id)
+        .order_by(Responsavel.id.asc())
+        .all()
+    )
+
+    pode_alterar_foto = (
+        current_user.is_admin
+        or crianca.responsavel_id == current_user.id
+        or crianca.usuario_id == current_user.id
+    )
 
     return render_template(
         'detalhes_crianca.html',
         crianca=crianca,
-        responsavel=responsavel,
-        turma=turma
+        responsaveis=responsaveis,
+        turma=turma,
+        pode_alterar_foto=pode_alterar_foto
     )
 
 # ==========================================
@@ -1228,7 +1247,20 @@ def politica_privacidade():
 @app.route('/minha_conta', methods=['GET', 'POST'])
 @login_required
 def minha_conta():
-    responsavel = Responsavel.query.filter_by(usuario_id=current_user.id).first()
+    # Procura o registro do titular pelo nome atual da conta, sem confundir
+    # responsáveis adicionais que tenham nomes próprios.
+    responsaveis_da_conta = (
+        Responsavel.query
+        .filter_by(usuario_id=current_user.id)
+        .order_by(Responsavel.id.asc())
+        .all()
+    )
+    nome_atual_conta = (current_user.nome or '').strip().casefold()
+    responsavel = next(
+        (item for item in responsaveis_da_conta
+         if (item.nome or '').strip().casefold() == nome_atual_conta),
+        responsaveis_da_conta[0] if responsaveis_da_conta else None
+    )
 
     if request.method == 'POST':
         foto = request.files.get('foto')
@@ -1280,13 +1312,49 @@ def adicionar_responsavel():
             foto_url=foto_nome,
             whatsapp_opt_in=request.form.get('whatsapp_opt_in') == 'on'
         )
+        # A foto deste responsável pertence somente a este registro.
+        # Não altere a foto da conta principal ao cadastrar outro responsável.
         db.session.add(novo_responsavel)
-        if foto_nome != 'default.png':
-            current_user.foto_perfil = foto_nome
         db.session.commit()
         return redirect(url_for('dashboard'))
         
     return render_template('adicionar_responsavel.html')
+
+@app.route('/alterar_foto_crianca/<int:crianca_id>', methods=['POST'])
+@login_required
+def alterar_foto_crianca(crianca_id):
+    # Atualiza somente a foto da criança, preservando os demais dados.
+    crianca = Crianca.query.get_or_404(crianca_id)
+
+    pertence_a_conta = (
+        crianca.responsavel_id == current_user.id
+        or crianca.usuario_id == current_user.id
+    )
+    if not (current_user.is_admin or pertence_a_conta):
+        return jsonify({'erro': 'Acesso negado'}), 403
+
+    turma_id = request.form.get('turma_id', type=int)
+    foto = request.files.get('foto')
+    if not foto or not foto.filename:
+        flash('Selecione uma foto antes de salvar.', 'warning')
+        return redirect(url_for('detalhes_crianca', crianca_id=crianca.id, turma_id=turma_id))
+
+    try:
+        nova_foto = salvar_foto(foto, 'crianca')
+    except (ValueError, RuntimeError) as erro:
+        flash(str(erro), 'danger')
+        return redirect(url_for('detalhes_crianca', crianca_id=crianca.id, turma_id=turma_id))
+
+    crianca.foto_url = nova_foto
+    db.session.commit()
+    flash(f'Foto de {crianca.nome} atualizada com sucesso!', 'success')
+
+    return redirect(url_for(
+        'detalhes_crianca',
+        crianca_id=crianca.id,
+        turma_id=turma_id
+    ))
+
 
 @app.route('/cadastrar_crianca', methods=['GET', 'POST'])
 @login_required
@@ -1613,6 +1681,7 @@ def admin_editar_usuario(usuario_id):
         elif usuario.is_professor and not novo_professor and Turma.query.filter(or_(Turma.professor_id == usuario.id, Turma.auxiliar_id == usuario.id)).first() is not None:
             flash('Este profissional está atribuído a uma ou mais turmas. Reatribua a escala antes de remover o perfil de professor/auxiliar.', 'danger')
         else:
+            nome_anterior_conta = (usuario.nome or '').strip().casefold()
             usuario.nome = nome
             usuario.email = email
             usuario.telefone = telefone or None
@@ -1633,12 +1702,23 @@ def admin_editar_usuario(usuario_id):
             elif not novo_professor:
                 usuario.precisa_trocar_senha = False
 
-            # Mantém os dados básicos de contato sincronizados para perfis de responsável já existentes.
-            responsaveis_vinculados = Responsavel.query.filter_by(usuario_id=usuario.id).all()
-            for responsavel in responsaveis_vinculados:
-                responsavel.nome = nome
+            # Sincroniza somente o registro que correspondia ao titular antes
+            # da edição. Os responsáveis adicionais mantêm nome/foto/telefone.
+            responsaveis_da_conta = (
+                Responsavel.query
+                .filter_by(usuario_id=usuario.id)
+                .order_by(Responsavel.id.asc())
+                .all()
+            )
+            responsavel_principal = next(
+                (item for item in responsaveis_da_conta
+                 if (item.nome or '').strip().casefold() == nome_anterior_conta),
+                None
+            )
+            if responsavel_principal:
+                responsavel_principal.nome = nome
                 if telefone:
-                    responsavel.telefone = telefone
+                    responsavel_principal.telefone = telefone
 
             db.session.commit()
             flash(f'Usuário {nome} atualizado com sucesso.', 'success')
